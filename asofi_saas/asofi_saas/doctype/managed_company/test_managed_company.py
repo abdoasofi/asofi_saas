@@ -1,0 +1,130 @@
+import json
+from unittest.mock import MagicMock, patch
+
+import frappe
+from frappe.tests.utils import FrappeTestCase
+
+from asofi_saas import api
+from asofi_saas.asofi_saas.subscription import push as push_mod
+
+
+def _make_plan(code="standard"):
+    if not frappe.db.exists("SaaS Subscription Plan", code):
+        frappe.get_doc(
+            {"doctype": "SaaS Subscription Plan", "plan_code": code, "plan_name": code}
+        ).insert()
+
+
+def _make_company(site, provision="Draft", status="Active", plan="standard", **kw):
+    _make_plan(plan)
+    return frappe.get_doc(
+        {
+            "doctype": "Managed Company",
+            "company_name": kw.get("company_name", "Test Co"),
+            "site_name": site,
+            "site_url": kw.get("site_url", f"http://{site}"),
+            "control_plane_secret": kw.get("secret", "s3cr3t"),
+            "subscription_plan": plan,
+            "subscription_status": status,
+            "provision_status": provision,
+            "subscription_end": kw.get("subscription_end"),
+        }
+    ).insert()
+
+
+class TestManagedCompany(FrappeTestCase):
+    def test_normalize_site_url_adds_scheme_and_strips_slash(self):
+        doc = _make_company("norm.example", site_url="norm.example/")
+        self.assertEqual(doc.site_url, "https://norm.example")
+
+    def test_on_update_skips_push_when_not_active(self):
+        doc = _make_company("draft.example", provision="Draft")
+        with patch.object(frappe, "enqueue") as enq:
+            doc.subscription_status = "Trial"
+            doc.save()
+            enq.assert_not_called()
+
+    def test_on_update_enqueues_push_when_active_and_changed(self):
+        doc = _make_company("active.example", provision="Active", status="Active")
+        with patch.object(frappe, "enqueue") as enq:
+            doc.subscription_status = "Suspended"
+            doc.save()
+            self.assertTrue(enq.called)
+
+
+class TestSubscriptionPush(FrappeTestCase):
+    def test_extract_error_parses_server_messages(self):
+        resp = MagicMock(status_code=417)
+        resp.json.return_value = {
+            "_server_messages": json.dumps([json.dumps({"message": "limit reached"})])
+        }
+        self.assertEqual(push_mod._extract_error(resp), "limit reached")
+
+    def test_extract_error_fallback_non_json(self):
+        resp = MagicMock(status_code=500)
+        resp.json.side_effect = ValueError()
+        self.assertEqual(push_mod._extract_error(resp), "HTTP 500")
+
+    def test_push_success_records_log_and_status(self):
+        doc = _make_company("push-ok.example", provision="Draft")
+        fake = MagicMock(status_code=200, text="{}", ok=True)
+        with patch.object(push_mod.requests, "post", return_value=fake) as post:
+            res = push_mod.push_subscription(doc.name, action="Push Subscription")
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["http_status"], 200)
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", doc.name, "last_push_status"), "Success"
+        )
+        self.assertTrue(
+            frappe.db.exists("Subscription Push Log", {"company": doc.name, "status": "Success"})
+        )
+        post.assert_called_once()
+
+    def test_push_failure_captures_error(self):
+        doc = _make_company("push-fail.example", provision="Draft")
+        fake = MagicMock(status_code=403, ok=False, text="{}")
+        fake.json.return_value = {"exception": "PermissionError"}
+        with patch.object(push_mod.requests, "post", return_value=fake):
+            res = push_mod.push_subscription(doc.name)
+        self.assertFalse(res["ok"])
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", doc.name, "last_push_status"), "Failed"
+        )
+
+    def test_push_missing_secret_raises(self):
+        doc = _make_company("nosecret.example", provision="Draft", secret="")
+        with self.assertRaises(frappe.exceptions.ValidationError):
+            push_mod.push_subscription(doc.name)
+
+
+class TestConsoleApi(FrappeTestCase):
+    def test_list_and_get_company_hides_secret(self):
+        doc = _make_company("api-list.example", provision="Active")
+        names = [r["name"] for r in api.list_companies()]
+        self.assertIn(doc.name, names)
+        got = api.get_company(doc.name)
+        self.assertNotIn("control_plane_secret", got)
+        self.assertIn("recent_logs", got)
+
+    def test_create_and_update_company(self):
+        _make_plan("basic")
+        res = api.create_company(
+            company_name="ACME",
+            site_name="api-create.example",
+            site_url="http://api-create.example",
+            control_plane_secret="x",
+            subscription_plan="basic",
+        )
+        self.assertEqual(res["name"], "api-create.example")
+        api.update_company("api-create.example", subscription_status="Suspended")
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", "api-create.example", "subscription_status"),
+            "Suspended",
+        )
+
+    def test_dashboard_has_real_shape(self):
+        _make_company("api-dash.example", provision="Active", status="Active", plan="standard")
+        d = api.get_dashboard()
+        self.assertIn("total_companies", d)
+        self.assertIn("by_status", d)
+        self.assertIsInstance(d["estimated_mrr"], float)
