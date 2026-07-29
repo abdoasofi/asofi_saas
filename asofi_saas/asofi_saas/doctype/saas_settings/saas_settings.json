@@ -1,0 +1,81 @@
+{
+ "name": "SaaS Settings",
+ "module": "Asofi SaaS",
+ "doctype": "DocType",
+ "issingle": 1,
+ "engine": "InnoDB",
+ "fields": [
+  {
+   "fieldname": "provisioning_section",
+   "fieldtype": "Section Break",
+   "label": "Provisioning"
+  },
+  {
+   "fieldname": "bench_path",
+   "fieldtype": "Data",
+   "label": "Bench Path",
+   "description": "Absolute path to the bench that hosts company sites (e.g. /home/asofi/Benches/bench_asofi_v15)."
+  },
+  {
+   "fieldname": "bench_executable",
+   "fieldtype": "Data",
+   "label": "Bench Executable",
+   "default": "bench"
+  },
+  {
+   "fieldname": "db_root_password",
+   "fieldtype": "Password",
+   "label": "MariaDB Root Password"
+  },
+  {
+   "fieldname": "column_break_prov",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_site_domain",
+   "fieldtype": "Data",
+   "label": "Default Site Domain Suffix",
+   "description": "Optional suffix appended to new site names (e.g. .rased.com)."
+  },
+  {
+   "fieldname": "default_admin_password",
+   "fieldtype": "Password",
+   "label": "Default Admin Password"
+  },
+  {
+   "fieldname": "apps_to_install",
+   "fieldtype": "Small Text",
+   "label": "Apps To Install",
+   "default": "utility_billing",
+   "description": "One app per line, installed on every new company site."
+  },
+  {
+   "fieldname": "subscription_section",
+   "fieldtype": "Section Break",
+   "label": "Subscription"
+  },
+  {
+   "fieldname": "reminder_days",
+   "fieldtype": "Int",
+   "label": "Reminder Days Before Expiry",
+   "default": "3"
+  },
+  {
+   "fieldname": "notification_email",
+   "fieldtype": "Data",
+   "label": "Notification Email",
+   "options": "Email"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ]
+}

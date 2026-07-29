@@ -1,0 +1,44 @@
+[
+ {
+  "doctype": "SaaS Subscription Plan",
+  "name": "basic",
+  "plan_name": "الأساسية",
+  "plan_code": "basic",
+  "is_active": 1,
+  "max_collectors": 5,
+  "max_zones": 3,
+  "max_beneficiaries": 500,
+  "allow_photo_capture": 1,
+  "allow_reports_export": 0,
+  "monthly_price": 5000,
+  "description": "خطة تشغيل صغيرة: حتى 5 محصلين و3 مناطق و500 مستفيد."
+ },
+ {
+  "doctype": "SaaS Subscription Plan",
+  "name": "standard",
+  "plan_name": "المتقدمة",
+  "plan_code": "standard",
+  "is_active": 1,
+  "max_collectors": 20,
+  "max_zones": 10,
+  "max_beneficiaries": 5000,
+  "allow_photo_capture": 1,
+  "allow_reports_export": 1,
+  "monthly_price": 15000,
+  "description": "خطة متوسطة: حتى 20 محصلاً و10 مناطق و5000 مستفيد، مع تصدير التقارير."
+ },
+ {
+  "doctype": "SaaS Subscription Plan",
+  "name": "premium",
+  "plan_name": "الاحترافية",
+  "plan_code": "premium",
+  "is_active": 1,
+  "max_collectors": 0,
+  "max_zones": 0,
+  "max_beneficiaries": 0,
+  "allow_photo_capture": 1,
+  "allow_reports_export": 1,
+  "monthly_price": 40000,
+  "description": "بلا حدود على المحصلين والمناطق والمستفيدين، مع كل المزايا."
+ }
+]

@@ -1,0 +1,102 @@
+{
+ "name": "SaaS Subscription Plan",
+ "module": "Asofi SaaS",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "field:plan_code",
+ "naming_rule": "By fieldname",
+ "document_type": "Setup",
+ "fields": [
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "label": "Plan Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "plan_code",
+   "fieldtype": "Data",
+   "label": "Plan Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "Must match the Rased Subscription Plan code seeded on each company site (e.g. basic, standard, premium)."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "monthly_price",
+   "fieldtype": "Currency",
+   "label": "Monthly Price",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "limits_section",
+   "fieldtype": "Section Break",
+   "label": "Limits (0 = unlimited)"
+  },
+  {
+   "fieldname": "max_collectors",
+   "fieldtype": "Int",
+   "label": "Max Collectors",
+   "default": "0"
+  },
+  {
+   "fieldname": "max_zones",
+   "fieldtype": "Int",
+   "label": "Max Zones",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_limits",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "max_beneficiaries",
+   "fieldtype": "Int",
+   "label": "Max Beneficiaries",
+   "default": "0"
+  },
+  {
+   "fieldname": "features_section",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "fieldname": "allow_photo_capture",
+   "fieldtype": "Check",
+   "label": "Allow Photo Capture",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_reports_export",
+   "fieldtype": "Check",
+   "label": "Allow Reports Export",
+   "default": "0"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "report": 1
+  }
+ ]
+}
