@@ -65,6 +65,18 @@
    "fieldtype": "Data",
    "label": "Notification Email",
    "options": "Email"
+  },
+  {
+   "fieldname": "domain_section",
+   "fieldtype": "Section Break",
+   "label": "Domains & SSL"
+  },
+  {
+   "fieldname": "enable_domain_ssl",
+   "fieldtype": "Check",
+   "label": "Enable Domain & SSL Automation",
+   "default": "0",
+   "description": "Production only. On a server with nginx + certbot + passwordless sudo (bench setup sudoers <user>), provisioning regenerates nginx config, reloads it, and issues a Let's Encrypt certificate for each new site. Safely skipped elsewhere."
   }
  ],
  "sort_field": "modified",

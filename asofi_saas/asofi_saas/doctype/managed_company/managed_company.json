@@ -31,6 +31,12 @@
    "description": "Reachable base URL for pushing subscriptions (e.g. https://acme.rased.com)."
   },
   {
+   "fieldname": "custom_domain",
+   "fieldtype": "Data",
+   "label": "Custom Domain",
+   "description": "Optional vanity domain for the SSL certificate (defaults to the site name)."
+  },
+  {
    "fieldname": "control_plane_secret",
    "fieldtype": "Password",
    "label": "Control Plane Secret",

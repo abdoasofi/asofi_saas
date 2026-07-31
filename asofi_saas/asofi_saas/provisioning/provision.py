@@ -347,6 +347,15 @@ def provision_worker(
         _publish(operation_id, "push", "info", "دفع الاشتراك الأولي", user)
         push_subscription(doc.name, action="Provision")
 
+        # Optional, non-fatal: wire up nginx + SSL so the new site is reachable at
+        # its domain. A failure here never fails the provision (site is Active).
+        if _settings().enable_domain_ssl:
+            try:
+                _setup_domain_ssl(doc, operation_id, user)
+            except Exception as e:
+                logger.warning(f"domain/ssl setup skipped for {site}: {e}")
+                _publish(operation_id, "ssl", "warning", f"تخطّي النطاق/SSL: {e}", user)
+
         _publish(
             operation_id, "done", "success", f"تم إنشاء الموقع {site} بنجاح", user, final_status="SUCCESS"
         )
@@ -374,3 +383,65 @@ def get_provision_progress(operation_id, since=0):
         "finished": finished,
         "final_status": final,
     }
+
+
+# ---------------------------------------------------------------------------
+# Domain + SSL automation (production only, optional, non-fatal)
+# ---------------------------------------------------------------------------
+def _setup_domain_ssl(doc, operation_id, user):
+    """Regenerate nginx, reload it, and issue a Let's Encrypt certificate.
+
+    Production-only and non-fatal: the site is already Active, so any failure here
+    (no nginx, no sudo, DNS not pointed yet) is surfaced as a warning, not a
+    provisioning failure. Requires nginx + certbot on the host and passwordless
+    sudo for the bench user (`bench setup sudoers <user>`).
+    """
+    bench_path = _bench_path()
+    bench = _bench_exec()
+    site = doc.site_name
+    custom_domain = (doc.get("custom_domain") or "").strip()
+    target = custom_domain or site
+
+    _run([bench, "setup", "nginx", "--yes"], bench_path, operation_id, "nginx", user)
+    _run([bench, "setup", "reload-nginx"], bench_path, operation_id, "reload-nginx", user)
+
+    le_cmd = ["sudo", "-n", "-H", bench, "setup", "lets-encrypt", site]
+    if custom_domain:
+        le_cmd += ["--custom-domain", custom_domain]
+    le_cmd += ["-n"]  # non-interactive certbot + nginx restart
+    _publish(operation_id, "ssl", "info", f"إصدار شهادة SSL لـ {target}", user)
+    _run(le_cmd, bench_path, operation_id, "ssl", user)
+
+
+@frappe.whitelist()
+def enqueue_domain_ssl(company):
+    """Queue domain + SSL setup for an already-Active company (Desk/Flutter)."""
+    frappe.only_for("System Manager")
+    doc = frappe.get_doc("Managed Company", company)
+    if doc.provision_status != "Active":
+        frappe.throw(_("The site must be Active before setting up domain/SSL."))
+    operation_id = frappe.generate_hash(length=12)
+    frappe.enqueue(
+        "asofi_saas.asofi_saas.provisioning.provision.domain_ssl_worker",
+        queue="long",
+        timeout=1800,
+        operation_id=operation_id,
+        company=doc.name,
+        user=frappe.session.user,
+    )
+    logger.info(f"queued domain/ssl op={operation_id} site={doc.site_name}")
+    return {"operation_id": operation_id, "company": doc.name}
+
+
+def domain_ssl_worker(operation_id=None, company=None, user=None):
+    doc = frappe.get_doc("Managed Company", company)
+    try:
+        _publish(operation_id, "start", "info", f"إعداد النطاق وSSL لـ {doc.site_name}", user)
+        _setup_domain_ssl(doc, operation_id, user)
+        _publish(
+            operation_id, "done", "success", "تم إعداد النطاق وSSL بنجاح", user, final_status="SUCCESS"
+        )
+        logger.info(f"domain/ssl completed op={operation_id} site={doc.site_name}")
+    except Exception as e:
+        logger.exception(f"domain/ssl worker failed for {doc.site_name}")
+        _publish(operation_id, "error", "error", f"فشل إعداد النطاق/SSL: {e}", user, final_status="ERROR")

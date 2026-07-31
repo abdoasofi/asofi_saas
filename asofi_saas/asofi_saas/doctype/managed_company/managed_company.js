@@ -30,8 +30,33 @@ frappe.ui.form.on("Managed Company", {
 				},
 			});
 		});
+
+		if (frm.doc.provision_status === "Active") {
+			frm.add_custom_button(__("Setup Domain & SSL"), () => setup_domain_ssl(frm));
+		}
 	},
 });
+
+function setup_domain_ssl(frm) {
+	frappe.confirm(
+		__(
+			"Regenerate nginx, reload it, and issue a Let's Encrypt certificate for {0}? (production server only)",
+			[frappe.utils.escape_html(frm.doc.custom_domain || frm.doc.site_name)]
+		),
+		() => {
+			frappe.call({
+				method: "asofi_saas.asofi_saas.provisioning.provision.enqueue_domain_ssl",
+				args: { company: frm.doc.name },
+				freeze: true,
+				freeze_message: __("Queuing…"),
+				callback(r) {
+					if (r.exc || !r.message) return;
+					watch_progress(frm, r.message.operation_id);
+				},
+			});
+		}
+	);
+}
 
 function provision_dialog(frm) {
 	const d = new frappe.ui.Dialog({

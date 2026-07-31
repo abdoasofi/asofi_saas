@@ -242,6 +242,14 @@ def provision_progress(operation_id, since=0):
     return get_provision_progress(operation_id, since)
 
 
+@frappe.whitelist()
+def setup_domain_ssl_company(company):
+    _ensure_admin()
+    from asofi_saas.asofi_saas.provisioning.provision import enqueue_domain_ssl
+
+    return enqueue_domain_ssl(company)
+
+
 # ---------------------------------------------------------------------------
 # Dashboard (real data only)
 # ---------------------------------------------------------------------------
