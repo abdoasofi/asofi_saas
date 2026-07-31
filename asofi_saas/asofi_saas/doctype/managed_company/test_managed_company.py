@@ -5,6 +5,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from asofi_saas import api
+from asofi_saas.asofi_saas.provisioning import provision as prov
 from asofi_saas.asofi_saas.subscription import push as push_mod
 
 
@@ -128,3 +129,49 @@ class TestConsoleApi(FrappeTestCase):
         self.assertIn("total_companies", d)
         self.assertIn("by_status", d)
         self.assertIsInstance(d["estimated_mrr"], float)
+
+
+class TestDomainSsl(FrappeTestCase):
+    def _configure_bench(self):
+        frappe.db.set_single_value("SaaS Settings", "bench_path", "/tmp/bench")
+
+    def test_setup_domain_ssl_builds_commands(self):
+        doc = _make_company("ssl.example", provision="Active")
+        self._configure_bench()
+        calls = []
+        with patch.object(prov, "_run", side_effect=lambda cmd, *a, **k: calls.append(cmd)), patch.object(
+            prov, "_publish"
+        ):
+            prov._setup_domain_ssl(doc, "op1", "Administrator")
+        self.assertTrue(any(c[1:3] == ["setup", "nginx"] for c in calls))
+        self.assertTrue(any("reload-nginx" in c for c in calls))
+        le = next(c for c in calls if "lets-encrypt" in c)
+        self.assertIn("ssl.example", le)
+        self.assertNotIn("--custom-domain", le)
+
+    def test_setup_domain_ssl_uses_custom_domain(self):
+        doc = _make_company("ssl2.example", provision="Active")
+        doc.db_set("custom_domain", "vanity.example")
+        self._configure_bench()
+        calls = []
+        with patch.object(prov, "_run", side_effect=lambda cmd, *a, **k: calls.append(cmd)), patch.object(
+            prov, "_publish"
+        ):
+            prov._setup_domain_ssl(
+                frappe.get_doc("Managed Company", doc.name), "op", "Administrator"
+            )
+        le = next(c for c in calls if "lets-encrypt" in c)
+        self.assertIn("--custom-domain", le)
+        self.assertIn("vanity.example", le)
+
+    def test_enqueue_domain_ssl_requires_active(self):
+        doc = _make_company("ssl3.example", provision="Draft")
+        with self.assertRaises(frappe.exceptions.ValidationError):
+            prov.enqueue_domain_ssl(doc.name)
+
+    def test_enqueue_domain_ssl_enqueues_when_active(self):
+        doc = _make_company("ssl4.example", provision="Active")
+        with patch.object(frappe, "enqueue") as enq:
+            res = prov.enqueue_domain_ssl(doc.name)
+        self.assertTrue(enq.called)
+        self.assertIn("operation_id", res)
