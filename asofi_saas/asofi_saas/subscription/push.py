@@ -51,7 +51,16 @@ def push_subscription(company, action="Push Subscription"):
     response_text = ""
     error = ""
     try:
-        resp = requests.post(url, data=payload, timeout=PUSH_TIMEOUT)
+        # Route by site name, not just host: on a shared bench several company
+        # sites answer on one address, and in production the header simply matches
+        # the domain. This lets site_url be the reachable address (e.g. the bench
+        # at 127.0.0.1:8000 in dev) while the push still lands on the right site.
+        resp = requests.post(
+            url,
+            data=payload,
+            headers={"X-Frappe-Site-Name": doc.site_name},
+            timeout=PUSH_TIMEOUT,
+        )
         http_status = resp.status_code
         response_text = resp.text[:500]
         ok = resp.ok
