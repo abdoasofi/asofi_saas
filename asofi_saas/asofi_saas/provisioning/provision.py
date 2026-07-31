@@ -212,6 +212,66 @@ def enqueue_provision(**kwargs):
     return {"operation_id": operation_id, "company": doc.name}
 
 
+@frappe.whitelist()
+def provision_existing(
+    company,
+    manager_email=None,
+    manager_password=None,
+    manager_first_name=None,
+    manager_last_name=None,
+    admin_password=None,
+):
+    """Provision the site for an EXISTING Managed Company record (Desk button).
+
+    Unlike enqueue_provision (which creates a new record), this uses the record's
+    own site_name / plan / dates, and only needs the manager credentials that are
+    never stored. Returns ``{operation_id, company}``.
+    """
+    frappe.only_for("System Manager")
+    doc = frappe.get_doc("Managed Company", company)
+
+    if doc.provision_status == "Active":
+        frappe.throw(_("Site {0} is already Active.").format(doc.site_name))
+    if not (manager_email and manager_password):
+        frappe.throw(_("Manager email and password are required."))
+
+    settings = _settings()
+    if not settings.bench_path or not settings.get_password("db_root_password"):
+        frappe.throw(
+            _("Provisioning is not configured: set Bench Path and MariaDB Root Password in SaaS Settings.")
+        )
+
+    # A record registered by hand may not carry a secret yet — mint one so the
+    # post-creation push can authenticate against the new site.
+    if not doc.control_plane_secret:
+        doc.db_set("control_plane_secret", frappe.generate_hash(length=32))
+
+    admin_password = (
+        admin_password
+        or settings.get_password("default_admin_password")
+        or frappe.generate_hash(length=16)
+    )
+    operation_id = frappe.generate_hash(length=12)
+    doc.db_set("provision_status", "Queued")
+    frappe.db.commit()
+
+    frappe.enqueue(
+        "asofi_saas.asofi_saas.provisioning.provision.provision_worker",
+        queue="long",
+        timeout=3600,
+        operation_id=operation_id,
+        company=doc.name,
+        admin_password=admin_password,
+        manager_email=manager_email,
+        manager_password=manager_password,
+        manager_first_name=manager_first_name,
+        manager_last_name=manager_last_name,
+        user=frappe.session.user,
+    )
+    logger.info(f"queued provision (existing) op={operation_id} site={doc.site_name}")
+    return {"operation_id": operation_id, "company": doc.name}
+
+
 def provision_worker(
     operation_id=None,
     company=None,
@@ -225,13 +285,17 @@ def provision_worker(
     """Background worker (queue=long). Creates the site end-to-end."""
     doc = frappe.get_doc("Managed Company", company)
     site = doc.site_name
-    bench_path = _bench_path()
-    bench = _bench_exec()
-    root_pw = _root_password()
-    secret = doc.get_password("control_plane_secret")
-    apps = _apps_to_install()
 
     try:
+        # Read settings inside the try so a misconfiguration (missing bench path,
+        # root password, etc.) surfaces as a visible "Failed" with a message,
+        # instead of leaving the company stuck on "Queued" with no trace.
+        bench_path = _bench_path()
+        bench = _bench_exec()
+        root_pw = _root_password()
+        secret = doc.get_password("control_plane_secret")
+        apps = _apps_to_install()
+
         doc.db_set("provision_status", "Creating")
         frappe.db.commit()
         _publish(operation_id, "start", "info", f"بدء إنشاء الموقع {site}", user)
