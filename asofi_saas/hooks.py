@@ -26,6 +26,9 @@ scheduler_events = {
     "daily": [
         "asofi_saas.asofi_saas.subscription.lifecycle.run_daily_subscription_check",
     ],
+    "hourly": [
+        "asofi_saas.asofi_saas.sync.usage.sync_all_usage",
+    ],
 }
 
 # ------------------------------------------------------------------------------

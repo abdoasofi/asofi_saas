@@ -48,6 +48,11 @@ _COMPANY_LIST_FIELDS = [
     "contact_person",
     "contact_phone",
     "contact_email",
+    "usage_collectors",
+    "usage_zones",
+    "usage_beneficiaries",
+    "usage_last_activity",
+    "usage_synced_on",
 ]
 
 _COMPANY_EDITABLE = (
@@ -250,6 +255,15 @@ def setup_domain_ssl_company(company):
     return enqueue_domain_ssl(company)
 
 
+@frappe.whitelist()
+def sync_usage_company(company):
+    """Pull live usage for one company on demand (synchronous)."""
+    _ensure_admin()
+    from asofi_saas.asofi_saas.sync.usage import pull_usage
+
+    return pull_usage(company)
+
+
 # ---------------------------------------------------------------------------
 # Dashboard (real data only)
 # ---------------------------------------------------------------------------
@@ -316,6 +330,19 @@ def get_dashboard():
         """
     )[0][0]
 
+    # Aggregate real usage synced from the company sites (see sync.usage).
+    usage = frappe.db.sql(
+        """
+        select
+            coalesce(sum(usage_collectors), 0)    as collectors,
+            coalesce(sum(usage_zones), 0)         as zones,
+            coalesce(sum(usage_beneficiaries), 0) as beneficiaries,
+            sum(case when usage_synced_on is not null then 1 else 0 end) as synced
+        from `tabManaged Company`
+        """,
+        as_dict=True,
+    )[0]
+
     return {
         "total_companies": total,
         "by_status": by_status,
@@ -323,4 +350,10 @@ def get_dashboard():
         "expiring_soon": soon,
         "recent_failures": failures,
         "estimated_mrr": float(mrr or 0),
+        "usage": {
+            "collectors": int(usage.collectors or 0),
+            "zones": int(usage.zones or 0),
+            "beneficiaries": int(usage.beneficiaries or 0),
+            "synced": int(usage.synced or 0),
+        },
     }
