@@ -141,6 +141,57 @@
    "read_only": 1
   },
   {
+   "fieldname": "usage_section",
+   "fieldtype": "Section Break",
+   "label": "Usage (synced from site)"
+  },
+  {
+   "fieldname": "usage_collectors",
+   "fieldtype": "Int",
+   "label": "Collectors (active)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_zones",
+   "fieldtype": "Int",
+   "label": "Zones",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_beneficiaries",
+   "fieldtype": "Int",
+   "label": "Beneficiaries",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_usage",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "usage_beneficiaries_active",
+   "fieldtype": "Int",
+   "label": "Beneficiaries (active)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_last_activity",
+   "fieldtype": "Date",
+   "label": "Last Activity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_synced_on",
+   "fieldtype": "Datetime",
+   "label": "Usage Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_error",
+   "fieldtype": "Small Text",
+   "label": "Usage Sync Error",
+   "read_only": 1
+  },
+  {
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"

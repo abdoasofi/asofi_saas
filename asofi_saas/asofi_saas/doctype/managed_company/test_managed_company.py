@@ -7,6 +7,7 @@ from frappe.tests.utils import FrappeTestCase
 from asofi_saas import api
 from asofi_saas.asofi_saas.provisioning import provision as prov
 from asofi_saas.asofi_saas.subscription import push as push_mod
+from asofi_saas.asofi_saas.sync import usage as usage_mod
 
 
 def _make_plan(code="standard"):
@@ -175,3 +176,47 @@ class TestDomainSsl(FrappeTestCase):
             res = prov.enqueue_domain_ssl(doc.name)
         self.assertTrue(enq.called)
         self.assertIn("operation_id", res)
+
+
+class TestUsageSync(FrappeTestCase):
+    def test_pull_usage_success_stores_snapshot(self):
+        doc = _make_company("usage-ok.example", provision="Active")
+        payload = {
+            "message": {
+                "collectors_active": 4,
+                "zones": 6,
+                "beneficiaries": {
+                    "active": 100,
+                    "inactive": 5,
+                    "suspended": 2,
+                    "total": 107,
+                },
+                "last_reading_date": "2026-07-20",
+            }
+        }
+        fake = MagicMock(status_code=200, ok=True, content=b"{}")
+        fake.json.return_value = payload
+        with patch.object(usage_mod.requests, "post", return_value=fake):
+            res = usage_mod.pull_usage(doc.name)
+        self.assertTrue(res["ok"])
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", doc.name, "usage_collectors"), 4
+        )
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", doc.name, "usage_beneficiaries"), 107
+        )
+        self.assertEqual(
+            frappe.db.get_value("Managed Company", doc.name, "usage_beneficiaries_active"),
+            100,
+        )
+
+    def test_pull_usage_failure_records_error(self):
+        doc = _make_company("usage-fail.example", provision="Active")
+        fake = MagicMock(status_code=403, ok=False, content=b"{}")
+        fake.json.return_value = {"exception": "PermissionError"}
+        with patch.object(usage_mod.requests, "post", return_value=fake):
+            res = usage_mod.pull_usage(doc.name)
+        self.assertFalse(res["ok"])
+        self.assertTrue(
+            frappe.db.get_value("Managed Company", doc.name, "usage_error")
+        )

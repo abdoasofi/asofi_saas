@@ -33,6 +33,23 @@ frappe.ui.form.on("Managed Company", {
 
 		if (frm.doc.provision_status === "Active") {
 			frm.add_custom_button(__("Setup Domain & SSL"), () => setup_domain_ssl(frm));
+			frm.add_custom_button(__("Sync Usage"), () => {
+				frappe.call({
+					method: "asofi_saas.asofi_saas.sync.usage.sync_usage",
+					args: { company: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Syncing…"),
+					callback(r) {
+						if (r.exc || !r.message) return;
+						const m = r.message;
+						frappe.show_alert({
+							message: m.ok ? __("Usage synced") : __("Sync failed: {0}", [m.message]),
+							indicator: m.ok ? "green" : "red",
+						});
+						frm.reload_doc();
+					},
+				});
+			});
 		}
 	},
 });
