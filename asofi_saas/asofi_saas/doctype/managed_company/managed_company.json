@@ -195,6 +195,27 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "signup_section",
+   "fieldtype": "Section Break",
+   "label": "Signup"
+  },
+  {
+   "fieldname": "is_trial",
+   "fieldtype": "Check",
+   "label": "Self-service Trial",
+   "default": "0",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "description": "Set when the site was created by a visitor via the public /asofisaas trial form."
+  },
+  {
+   "fieldname": "signup_ip",
+   "fieldtype": "Data",
+   "label": "Signup IP",
+   "read_only": 1,
+   "description": "IP address that submitted the public trial form (audit trail)."
   }
  ],
  "sort_field": "modified",

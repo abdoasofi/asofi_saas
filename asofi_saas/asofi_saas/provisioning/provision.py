@@ -133,23 +133,37 @@ def _run(cmd, cwd, operation_id, step, user):
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# Shared core (no permission gate — callers authorize)
 # ---------------------------------------------------------------------------
-@frappe.whitelist()
-def enqueue_provision(**kwargs):
-    """Validate inputs, register the Managed Company, and queue the worker.
+def _create_company_and_enqueue(
+    *,
+    company_name,
+    site_name,
+    manager_email,
+    manager_password,
+    subscription_plan,
+    site_url=None,
+    subscription_status="Trial",
+    subscription_start=None,
+    subscription_end=None,
+    contact_person=None,
+    contact_phone=None,
+    contact_email=None,
+    manager_first_name=None,
+    manager_last_name=None,
+    admin_password=None,
+    is_trial=0,
+    signup_ip=None,
+):
+    """Register the Managed Company and queue the provisioning worker.
 
-    Returns ``{operation_id, company}``. The Flutter console polls
-    ``get_provision_progress(operation_id)`` for live status.
+    Deliberately performs **no** permission check: the admin console
+    (``enqueue_provision``, System Manager) and the public trial flow
+    (``public.tenant.create_trial_tenant``, guest + rate-limited) each enforce
+    their own access rules, then share this creation/enqueue logic so the two
+    paths never drift. Returns ``{operation_id, company}``.
     """
-    frappe.only_for("System Manager")
-
-    company_name = kwargs.get("company_name")
-    site_name = kwargs.get("site_name")
-    manager_email = kwargs.get("manager_email")
-    manager_password = kwargs.get("manager_password")
-    plan = kwargs.get("subscription_plan")
-    if not (company_name and site_name and manager_email and manager_password and plan):
+    if not (company_name and site_name and manager_email and manager_password and subscription_plan):
         frappe.throw(
             _(
                 "company_name, site_name, manager_email, manager_password and "
@@ -162,15 +176,15 @@ def enqueue_provision(**kwargs):
         frappe.throw(
             _("Provisioning is not configured: set Bench Path and MariaDB Root Password in SaaS Settings.")
         )
-    if not frappe.db.exists("SaaS Subscription Plan", plan):
-        frappe.throw(_("Unknown plan: {0}").format(plan))
+    if not frappe.db.exists("SaaS Subscription Plan", subscription_plan):
+        frappe.throw(_("Unknown plan: {0}").format(subscription_plan))
     if frappe.db.exists("Managed Company", site_name):
         frappe.throw(_("A Managed Company for site {0} already exists.").format(site_name))
 
-    site_url = (kwargs.get("site_url") or ("https://" + site_name)).rstrip("/")
+    site_url = (site_url or ("https://" + site_name)).rstrip("/")
     secret = frappe.generate_hash(length=32)
     admin_password = (
-        kwargs.get("admin_password")
+        admin_password
         or settings.get_password("default_admin_password")
         or frappe.generate_hash(length=16)
     )
@@ -182,16 +196,18 @@ def enqueue_provision(**kwargs):
             "site_name": site_name,
             "site_url": site_url,
             "control_plane_secret": secret,
-            "subscription_plan": plan,
-            "subscription_status": kwargs.get("subscription_status") or "Trial",
-            "subscription_start": kwargs.get("subscription_start"),
-            "subscription_end": kwargs.get("subscription_end"),
-            "contact_person": kwargs.get("contact_person"),
-            "contact_phone": kwargs.get("contact_phone"),
-            "contact_email": kwargs.get("contact_email"),
+            "subscription_plan": subscription_plan,
+            "subscription_status": subscription_status or "Trial",
+            "subscription_start": subscription_start,
+            "subscription_end": subscription_end,
+            "contact_person": contact_person,
+            "contact_phone": contact_phone,
+            "contact_email": contact_email,
+            "is_trial": 1 if is_trial else 0,
+            "signup_ip": signup_ip,
             "provision_status": "Queued",
         }
-    ).insert()
+    ).insert(ignore_permissions=True)
     frappe.db.commit()
 
     operation_id = frappe.generate_hash(length=12)
@@ -204,12 +220,42 @@ def enqueue_provision(**kwargs):
         admin_password=admin_password,
         manager_email=manager_email,
         manager_password=manager_password,
-        manager_first_name=kwargs.get("manager_first_name"),
-        manager_last_name=kwargs.get("manager_last_name"),
+        manager_first_name=manager_first_name,
+        manager_last_name=manager_last_name,
         user=frappe.session.user,
     )
-    logger.info(f"queued provision op={operation_id} site={site_name}")
+    logger.info(f"queued provision op={operation_id} site={site_name} trial={bool(is_trial)}")
     return {"operation_id": operation_id, "company": doc.name}
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+@frappe.whitelist()
+def enqueue_provision(**kwargs):
+    """Validate inputs, register the Managed Company, and queue the worker.
+
+    Returns ``{operation_id, company}``. The Flutter console polls
+    ``get_provision_progress(operation_id)`` for live status.
+    """
+    frappe.only_for("System Manager")
+    return _create_company_and_enqueue(
+        company_name=kwargs.get("company_name"),
+        site_name=kwargs.get("site_name"),
+        manager_email=kwargs.get("manager_email"),
+        manager_password=kwargs.get("manager_password"),
+        subscription_plan=kwargs.get("subscription_plan"),
+        site_url=kwargs.get("site_url"),
+        subscription_status=kwargs.get("subscription_status") or "Trial",
+        subscription_start=kwargs.get("subscription_start"),
+        subscription_end=kwargs.get("subscription_end"),
+        contact_person=kwargs.get("contact_person"),
+        contact_phone=kwargs.get("contact_phone"),
+        contact_email=kwargs.get("contact_email"),
+        manager_first_name=kwargs.get("manager_first_name"),
+        manager_last_name=kwargs.get("manager_last_name"),
+        admin_password=kwargs.get("admin_password"),
+    )
 
 
 @frappe.whitelist()
@@ -317,6 +363,21 @@ def provision_worker(
                 user,
             )
 
+        # A freshly created site has the setup wizard incomplete, which traps the
+        # (non-System-Manager) manager on /app/setup-wizard with a "Not permitted"
+        # error on first web login. Mark setup complete so the site is usable
+        # immediately; the manager's day-to-day interface is the Rased mobile app.
+        _run(
+            [
+                bench, "--site", site, "execute", "frappe.db.set_single_value",
+                "--kwargs", "{'doctype': 'System Settings', 'fieldname': 'setup_complete', 'value': 1}",
+            ],
+            bench_path,
+            operation_id,
+            "finalize-setup",
+            user,
+        )
+
         _run(
             [bench, "--site", site, "set-config", "rased_control_plane_secret", secret],
             bench_path,
@@ -369,10 +430,13 @@ def provision_worker(
         _publish(operation_id, "error", "error", f"فشل الإنشاء: {e}", user, final_status="ERROR")
 
 
-@frappe.whitelist()
-def get_provision_progress(operation_id, since=0):
-    """Return progress events buffered since index `since` (polling endpoint)."""
-    frappe.only_for("System Manager")
+def _read_progress(operation_id, since=0):
+    """Read the Redis-buffered progress events for an operation since `since`.
+
+    No permission gate — the guest trial page reads the same buffer via the
+    unguessable operation_id (capability token). Admin callers wrap this in
+    ``get_provision_progress`` with a System Manager check.
+    """
     buf = frappe.cache().get_value(_progress_key(operation_id)) or []
     since = int(since or 0)
     finished = any(e.get("final_status") for e in buf)
@@ -383,6 +447,13 @@ def get_provision_progress(operation_id, since=0):
         "finished": finished,
         "final_status": final,
     }
+
+
+@frappe.whitelist()
+def get_provision_progress(operation_id, since=0):
+    """Return progress events buffered since index `since` (polling endpoint)."""
+    frappe.only_for("System Manager")
+    return _read_progress(operation_id, since)
 
 
 # ---------------------------------------------------------------------------

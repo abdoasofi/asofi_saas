@@ -1,0 +1,554 @@
+{% extends "templates/web.html" %}
+
+{# Full-bleed marketing page: strip the standard website chrome. #}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block style %}
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #134e4a;
+    --primary-soft: #ccfbf1;
+    --accent: #f59e0b;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --bg: #f8fafc;
+    --ok: #16a34a;
+    --err: #dc2626;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .rased-lp {
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.85;
+  }
+  .rased-lp .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  .rased-lp h1, .rased-lp h2, .rased-lp h3 { margin: 0 0 .4em; line-height: 1.3; }
+  .rased-lp p { margin: 0 0 1em; }
+  .rased-lp a { color: inherit; text-decoration: none; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 1rem;
+    cursor: pointer; border: 2px solid transparent; transition: transform .06s ease, box-shadow .2s;
+    font-family: inherit;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(15,118,110,.28); }
+  .btn--primary:hover { background: var(--primary-dark); }
+  .btn--ghost { background: #fff; color: var(--primary-dark); border-color: var(--line); }
+  .btn--ghost:hover { border-color: var(--primary); }
+  .btn--lg { padding: 18px 40px; font-size: 1.15rem; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+  /* Top bar */
+  .topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.9);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.4rem; color: var(--primary-dark); }
+  .brand .dot { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden;
+    background: radial-gradient(1200px 500px at 90% -10%, var(--primary-soft), transparent),
+                linear-gradient(180deg, #fff, var(--bg)); }
+  .hero .wrap { padding: 84px 20px 72px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  .hero .eyebrow { display: inline-block; background: var(--primary-soft); color: var(--primary-dark);
+    font-weight: 700; padding: 6px 14px; border-radius: 999px; font-size: .9rem; margin-bottom: 18px; }
+  .hero h1 { font-size: 2.9rem; letter-spacing: -.5px; }
+  .hero h1 span { color: var(--primary); }
+  .hero .lead { font-size: 1.2rem; color: var(--muted); max-width: 46ch; }
+  .hero .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 26px; }
+  .hero .reassure { margin-top: 16px; color: var(--muted); font-size: .95rem; }
+  .hero .reassure b { color: var(--ink); }
+  .hero-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 22px; }
+  .hero-card .row { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px dashed var(--line); }
+  .hero-card .row:last-child { border-bottom: 0; }
+  .hero-card .ic { width: 42px; height: 42px; border-radius: 12px; background: var(--primary-soft); color: var(--primary-dark);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; flex: 0 0 auto; }
+  .hero-card .row div b { display: block; }
+  .hero-card .row div small { color: var(--muted); }
+
+  /* Sections */
+  section { padding: 72px 0; }
+  .section-head { text-align: center; max-width: 60ch; margin: 0 auto 44px; }
+  .section-head h2 { font-size: 2.1rem; }
+  .section-head p { color: var(--muted); font-size: 1.1rem; }
+
+  /* Features */
+  .features { background: var(--bg); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
+  .card .ic { width: 50px; height: 50px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; background: var(--primary-soft); color: var(--primary-dark); margin-bottom: 14px; }
+  .card h3 { font-size: 1.25rem; }
+  .card p { color: var(--muted); margin: 0; }
+
+  /* Pricing */
+  .plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; align-items: stretch; }
+  .plan { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 28px 22px; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .plan--featured { border: 2px solid var(--primary); transform: translateY(-6px); }
+  .plan__ribbon { position: absolute; top: -13px; inset-inline-start: 22px; background: var(--accent); color: #fff;
+    font-weight: 700; font-size: .8rem; padding: 5px 12px; border-radius: 999px; }
+  .plan h3 { font-size: 1.3rem; }
+  .plan__price { font-size: 1.9rem; font-weight: 800; color: var(--primary-dark); margin: 6px 0 4px; }
+  .plan__price span { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .plan__desc { color: var(--muted); font-size: .92rem; min-height: 3em; }
+  .plan__features { list-style: none; padding: 0; margin: 16px 0 22px; flex: 1; }
+  .plan__features li { padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; align-items: center; gap: 8px; font-size: .95rem; }
+  .plan__features li::before { content: "✓"; color: var(--ok); font-weight: 800; }
+
+  /* Trial form */
+  .trial { background: linear-gradient(180deg, var(--bg), #fff); }
+  .trial-box { max-width: 640px; margin: 0 auto; background: #fff; border: 1px solid var(--line);
+    border-radius: 20px; box-shadow: var(--shadow); padding: 34px; }
+  .notice { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-weight: 700; margin-bottom: 7px; }
+  .field input { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px;
+    font-family: inherit; font-size: 1rem; background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .subdomain-wrap { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+  .subdomain-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .subdomain-wrap input { border: 0; border-radius: 0; box-shadow: none; flex: 1; text-align: left; direction: ltr; }
+  .subdomain-wrap .suffix { display: inline-flex; align-items: center; padding: 0 14px; background: var(--bg);
+    color: var(--muted); font-weight: 600; direction: ltr; border-inline-start: 1px solid var(--line); }
+  .hint { font-size: .88rem; margin-top: 6px; min-height: 1.2em; color: var(--muted); }
+  .hint.ok { color: var(--ok); } .hint.err { color: var(--err); } .hint.checking { color: var(--muted); }
+  .form-error { background: #fef2f2; border: 1px solid #fecaca; color: var(--err); border-radius: 11px; padding: 12px 14px; margin-bottom: 16px; display: none; }
+  .form-error.show { display: block; }
+
+  /* Progress panel */
+  .provisioning { display: none; }
+  .provisioning.show { display: block; }
+  .form-view.hide { display: none; }
+  .progress-track { height: 12px; background: var(--bg); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .5s ease; }
+  .progress-pct { text-align: center; font-weight: 800; font-size: 1.4rem; color: var(--primary-dark); margin: 14px 0 4px; }
+  .progress-step { text-align: center; color: var(--muted); margin-bottom: 18px; }
+  .log { background: #0b1220; color: #cbd5e1; border-radius: 12px; padding: 14px; max-height: 220px; overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; direction: ltr; text-align: left; }
+  .log div { padding: 1px 0; white-space: pre-wrap; word-break: break-word; }
+  .log .info { color: #7dd3fc; } .log .progress { color: #94a3b8; } .log .success { color: #86efac; } .log .error { color: #fca5a5; }
+  .result { text-align: center; padding: 8px; display: none; }
+  .result.show { display: block; }
+  .result .big-ic { font-size: 3rem; }
+  .result .btn { display: flex; width: 100%; margin-top: 12px; }
+  .login-info { text-align: right; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 16px; margin: 16px 0; }
+  .login-info__row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0;
+    border-bottom: 1px dashed var(--line); font-size: .95rem; }
+  .login-info__row:last-child { border-bottom: 0; }
+  .login-info__row span { color: var(--muted); }
+  .login-info__row b { direction: ltr; word-break: break-all; text-align: left; }
+  .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 50%;
+    display: inline-block; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Footer */
+  .site-footer { background: var(--primary-dark); color: #cbd5e1; padding: 40px 0; text-align: center; }
+  .site-footer .brand { color: #fff; justify-content: center; margin-bottom: 8px; }
+
+  @media (max-width: 900px) {
+    .hero .wrap { grid-template-columns: 1fr; padding-top: 56px; }
+    .hero h1 { font-size: 2.2rem; }
+    .grid { grid-template-columns: 1fr; }
+    .plans { grid-template-columns: 1fr 1fr; }
+    .plan--featured { transform: none; }
+  }
+  @media (max-width: 560px) { .plans { grid-template-columns: 1fr; } .trial-box { padding: 22px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rased-lp" dir="rtl">
+
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ر</span> راصد</div>
+      <a href="#trial" class="btn btn--primary">ابدأ التجربة المجانية</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">منصّة سحابية لإدارة تحصيل الخدمات</span>
+        <h1>أدِر <span>تحصيل</span> فواتير المياه والكهرباء من مكان واحد</h1>
+        <p class="lead">راصد يمنح كل شركة موقعها الخاص لإدارة المحصّلين والمناطق والمستفيدين وقراءات العدّادات — يعمل دون اتصال ويُزامن تلقائيًا.</p>
+        <div class="cta-row">
+          <a href="#trial" class="btn btn--primary btn--lg">ابدأ تجربتك المجانية لمدة {{ trial_days }} يومًا</a>
+          <a href="#pricing" class="btn btn--ghost btn--lg">استعرض الخطط</a>
+        </div>
+        <p class="reassure">✔ <b>بدون بطاقة ائتمان</b> · موقعك جاهز خلال دقائق · إلغاء في أي وقت</p>
+      </div>
+      <div class="hero-card">
+        <div class="row"><span class="ic">📊</span><div><b>لوحة تحكم فورية</b><small>متابعة التحصيل والأداء لحظة بلحظة</small></div></div>
+        <div class="row"><span class="ic">📶</span><div><b>يعمل دون إنترنت</b><small>المحصّل يعمل ميدانيًا ويُزامن لاحقًا</small></div></div>
+        <div class="row"><span class="ic">👥</span><div><b>إدارة المستفيدين</b><small>مناطق ومحصّلون وقراءات منظّمة</small></div></div>
+        <div class="row"><span class="ic">🔒</span><div><b>عزل كامل للبيانات</b><small>موقع مستقل لكل شركة</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>كل ما تحتاجه لإدارة التحصيل</h2>
+        <p>أدوات مصمّمة لواقع شركات الخدمات في اليمن — بسيطة، سريعة، وتعمل في الميدان.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic">🧾</span><h3>فوترة وقراءات</h3><p>سجّل قراءات العدّادات واحسب الفواتير تلقائيًا وفق شرائح الاستهلاك.</p></div>
+        <div class="card"><span class="ic">🗺️</span><h3>مناطق ومحصّلون</h3><p>وزّع المستفيدين على مناطق ومحصّلين وتابع إنجاز كلٍّ منهم.</p></div>
+        <div class="card"><span class="ic">📱</span><h3>تطبيق ميداني</h3><p>تطبيق جوال يعمل دون اتصال ويُزامن البيانات فور توفّر الشبكة.</p></div>
+        <div class="card"><span class="ic">📷</span><h3>توثيق بالصور</h3><p>التقاط صورة العدّاد مع كل قراءة لتوثيق دقيق وشفاف.</p></div>
+        <div class="card"><span class="ic">📈</span><h3>تقارير وتصدير</h3><p>تقارير تحصيل وأداء قابلة للتصدير لاتخاذ قرارات مبنية على بيانات.</p></div>
+        <div class="card"><span class="ic">⚙️</span><h3>تهيئة بنقرة</h3><p>موقعك الخاص يُنشأ ويُهيّأ آليًا خلال دقائق دون أي إعداد تقني.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>خطط تناسب كل حجم</h2>
+        <p>ابدأ مجانًا، وترقَّ عندما تكبر. الأسعار بالريال اليمني شهريًا.</p>
+      </div>
+      <div class="plans">
+        {% for p in plans %}
+        <div class="plan {% if p.plan_code == 'trial' %}plan--featured{% endif %}">
+          {% if p.plan_code == 'trial' %}<div class="plan__ribbon">الأنسب للبداية</div>{% endif %}
+          <h3>{{ p.plan_name }}</h3>
+          <div class="plan__price">
+            {% if p.monthly_price and p.monthly_price > 0 %}
+              {{ "{:,.0f}".format(p.monthly_price) }} <span>ر.ي / شهريًا</span>
+            {% else %}
+              مجانًا <span>· {{ trial_days }} يومًا</span>
+            {% endif %}
+          </div>
+          <div class="plan__desc">{{ p.description or "" }}</div>
+          <ul class="plan__features">
+            <li>محصّلون: {{ p.max_collectors if p.max_collectors else "غير محدود" }}</li>
+            <li>مناطق: {{ p.max_zones if p.max_zones else "غير محدود" }}</li>
+            <li>مستفيدون: {{ "{:,}".format(p.max_beneficiaries) if p.max_beneficiaries else "غير محدود" }}</li>
+            {% if p.allow_photo_capture %}<li>توثيق بالصور</li>{% endif %}
+            {% if p.allow_reports_export %}<li>تصدير التقارير</li>{% endif %}
+          </ul>
+          <a href="#trial" class="btn {% if p.plan_code == 'trial' %}btn--primary{% else %}btn--ghost{% endif %}">
+            {% if p.plan_code == 'trial' %}ابدأ التجربة{% else %}ابدأ بالتجربة أولًا{% endif %}
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Trial onboarding -->
+  <section class="trial" id="trial">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>أنشئ موقعك التجريبي الآن</h2>
+        <p>املأ البيانات التالية ليُنشأ موقعك الخاص خلال دقائق. تجربة مجانية {{ trial_days }} يومًا بدون بطاقة ائتمان.</p>
+      </div>
+
+      <div class="trial-box">
+        {% if not enable_public_trial %}
+        <div class="notice">التسجيل الذاتي غير مُفعّل حاليًا على هذا الخادم. تواصل معنا لتفعيل موقعك التجريبي.</div>
+        {% endif %}
+
+        <!-- FORM VIEW -->
+        <div class="form-view" id="formView">
+          <div class="form-error" id="formError"></div>
+          <form id="trialForm" novalidate>
+            <div class="field">
+              <label for="companyName">اسم الشركة / المنشأة</label>
+              <input type="text" id="companyName" name="company_name" placeholder="مثال: مؤسسة النور للمياه" autocomplete="organization" required>
+            </div>
+
+            <div class="field">
+              <label for="subdomain">اسم النطاق الفرعي (رابط موقعك)</label>
+              <div class="subdomain-wrap">
+                <input type="text" id="subdomain" name="subdomain" placeholder="mycompany" autocomplete="off" spellcheck="false" required>
+                <span class="suffix" id="domainSuffix">{{ domain_suffix or '' }}</span>
+              </div>
+              <div class="hint" id="subdomainHint">اكتب اسم موقعك بالإنجليزية فقط، بدون نقاط أو امتداد — مثل: <b>hiziz</b></div>
+            </div>
+
+            <div class="field">
+              <label for="adminEmail">البريد الإلكتروني للمدير</label>
+              <input type="email" id="adminEmail" name="admin_email" placeholder="you@company.com" autocomplete="email" dir="ltr" required>
+            </div>
+
+            <div class="field">
+              <label for="phone">رقم الجوال / واتساب</label>
+              <input type="tel" id="phone" name="phone" placeholder="7XXXXXXXX" autocomplete="tel" dir="ltr" required>
+            </div>
+
+            <div class="field">
+              <label for="password">كلمة مرور الحساب الرئيسي</label>
+              <input type="password" id="password" name="password" placeholder="٨ أحرف على الأقل" autocomplete="new-password" minlength="8" required>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--lg" id="submitBtn" style="width:100%" {% if not enable_public_trial %}disabled{% endif %}>
+              إنشاء موقعي المجاني
+            </button>
+          </form>
+        </div>
+
+        <!-- PROVISIONING VIEW -->
+        <div class="provisioning" id="provisioningView">
+          <div class="progress-pct" id="progressPct">0%</div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-step" id="progressStep">جارٍ بدء التجهيز…</div>
+          <div class="log" id="progressLog"></div>
+
+          <div class="result" id="resultView">
+            <div class="big-ic" id="resultIcon">🎉</div>
+            <h3 id="resultTitle">تم إنشاء حسابك بنجاح!</h3>
+            <p id="resultMsg" style="color:var(--muted)"></p>
+            <div class="login-info" id="loginInfo" style="display:none">
+              <div class="login-info__row"><span>عنوان موقعك</span><b id="infoSite"></b></div>
+              <div class="login-info__row"><span>بريد الدخول</span><b id="infoEmail"></b></div>
+            </div>
+            <a href="#" class="btn btn--primary btn--lg" id="downloadAppBtn" target="_blank" rel="noopener" style="display:none">⬇ تحميل تطبيق راصد للجوال</a>
+            <a href="#" class="btn btn--ghost btn--lg" id="gotoSiteBtn" target="_blank" rel="noopener">الدخول عبر المتصفح</a>
+            <div id="retryWrap" style="display:none">
+              <button class="btn btn--ghost btn--lg" id="retryBtn">المحاولة مرة أخرى</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ر</span> راصد</div>
+      <p>منصّة راصد لإدارة تحصيل الخدمات — جميع الحقوق محفوظة.</p>
+    </div>
+  </footer>
+
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function () {
+  "use strict";
+
+  var CFG = {
+    checkMethod: {{ check_method | tojson }},
+    createMethod: {{ create_method | tojson }},
+    progressMethod: {{ progress_method | tojson }},
+    suffix: {{ (domain_suffix or "") | tojson }},
+    appUrl: {{ (mobile_app_url or "") | tojson }},
+    enabled: {{ (enable_public_trial | int) }}
+  };
+
+  // ---- tiny fetch wrapper around Frappe's whitelisted methods ----
+  function csrf() {
+    try { return (window.frappe && frappe.csrf_token) ? frappe.csrf_token : ""; } catch (e) { return ""; }
+  }
+  function extractMsg(data) {
+    try {
+      var m = JSON.parse((data && data._server_messages) || "[]");
+      if (m.length) { var o = JSON.parse(m[0]); return o.message || o; }
+    } catch (e) {}
+    return (data && (data._error_message || data.exception)) || "حدث خطأ غير متوقع، حاول مجددًا.";
+  }
+  function stripHtml(s) { var d = document.createElement("div"); d.innerHTML = s || ""; return d.textContent || ""; }
+  function apiCall(method, args) {
+    return fetch("/api/method/" + method, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": csrf() },
+      body: JSON.stringify(args || {})
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) { throw new Error(stripHtml(extractMsg(data))); }
+        return data.message;
+      });
+    });
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---- live subdomain availability ----
+  var subEl = $("subdomain"), hintEl = $("subdomainHint");
+  var subTimer = null, subOK = false;
+  function setHint(txt, cls) { hintEl.textContent = txt; hintEl.className = "hint " + (cls || ""); }
+  function onSubInput() {
+    subOK = false;
+    // Sanitize live so a pasted full domain ("hiziz.com") or spaces can never
+    // produce a confusing validation error — only [a-z0-9-] survive.
+    var v = (subEl.value || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+    subEl.value = v;
+    clearTimeout(subTimer);
+    if (!v) { setHint("اكتب اسم موقعك بالإنجليزية فقط، بدون نقاط أو امتداد — مثل: hiziz"); return; }
+    setHint("جارٍ التحقق…", "checking");
+    subTimer = setTimeout(function () {
+      apiCall(CFG.checkMethod, { subdomain: v }).then(function (r) {
+        if ((subEl.value || "").trim().toLowerCase() !== r.subdomain) { return; } // stale
+        if (r.available) { subOK = true; setHint("متاح ✓  " + (r.full_url || (r.subdomain + CFG.suffix)), "ok"); }
+        else { subOK = false; setHint(r.reason || "هذا الاسم غير متاح.", "err"); }
+      }).catch(function (e) { setHint(e.message || "تعذّر التحقق.", "err"); });
+    }, 400);
+  }
+  if (subEl) { subEl.addEventListener("input", onSubInput); }
+
+  // ---- form submit ----
+  var form = $("trialForm"), errBox = $("formError"), submitBtn = $("submitBtn");
+  function showError(msg) { errBox.textContent = msg; errBox.classList.add("show"); errBox.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  function clearError() { errBox.classList.remove("show"); }
+
+  if (form) {
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      clearError();
+      if (!CFG.enabled) { showError("التسجيل الذاتي غير مُفعّل حاليًا."); return; }
+      var payload = {
+        company_name: $("companyName").value.trim(),
+        subdomain: $("subdomain").value.trim().toLowerCase(),
+        admin_email: $("adminEmail").value.trim(),
+        phone: $("phone").value.trim(),
+        password: $("password").value
+      };
+      if (!payload.company_name) { return showError("يرجى إدخال اسم الشركة."); }
+      if (!payload.subdomain) { return showError("يرجى إدخال اسم النطاق الفرعي."); }
+      if (payload.password.length < 8) { return showError("كلمة المرور يجب ألا تقل عن ٨ أحرف."); }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> جارٍ الإنشاء…';
+
+      apiCall(CFG.createMethod, payload).then(function (r) {
+        startProvisioning(r.operation_id, r.site_url, r.site_name, payload.admin_email);
+      }).catch(function (e) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "إنشاء موقعي المجاني";
+        showError(e.message || "تعذّر إنشاء الموقع.");
+      });
+    });
+  }
+
+  // ---- provisioning progress (poll the capability-token buffer) ----
+  var STEP_PCT = { "start": 8, "new-site": 30, "set-secret": 72, "add-manager": 85, "push": 93, "nginx": 95, "reload-nginx": 96, "ssl": 97, "done": 100 };
+  var STEP_LABEL = {
+    "start": "بدء التجهيز", "new-site": "إنشاء قاعدة البيانات والموقع", "set-secret": "ضبط الإعدادات الآمنة",
+    "add-manager": "إنشاء حساب المدير", "push": "تفعيل الاشتراك", "nginx": "إعداد النطاق",
+    "reload-nginx": "إعداد النطاق", "ssl": "تأمين الاتصال (SSL)", "done": "اكتمل التجهيز"
+  };
+  var maxPct = 0, since = 0, pollTimer = null, failCount = 0, provUrl = "", provName = "", provEmail = "";
+
+  function pct(step) {
+    if (step && step.indexOf("install") === 0) { return 60; }
+    return STEP_PCT[step] || 0;
+  }
+  function setBar(p) { if (p > maxPct) { maxPct = p; } $("progressFill").style.width = maxPct + "%"; $("progressPct").textContent = maxPct + "%"; }
+  function logLine(ev) {
+    var el = document.createElement("div");
+    el.className = ev.status || "info";
+    el.textContent = ev.message || "";
+    var log = $("progressLog"); log.appendChild(el); log.scrollTop = log.scrollHeight;
+  }
+  function stepLabel(step) {
+    if (step && step.indexOf("install") === 0) { return "تثبيت التطبيقات"; }
+    return STEP_LABEL[step] || "جارٍ المعالجة…";
+  }
+
+  function startProvisioning(opId, siteUrl, siteName, email) {
+    provUrl = siteUrl || "";
+    provName = siteName || "";
+    provEmail = email || "";
+    $("formView").classList.add("hide");
+    $("provisioningView").classList.add("show");
+    setBar(4);
+    poll(opId);
+    pollTimer = setInterval(function () { poll(opId); }, 1200);
+  }
+
+  function poll(opId) {
+    apiCall(CFG.progressMethod, { operation_id: opId, since: since }).then(function (p) {
+      failCount = 0;
+      (p.events || []).forEach(function (ev) {
+        logLine(ev);
+        if (ev.status !== "error") { setBar(pct(ev.step)); }
+        if (ev.step && STEP_LABEL[ev.step] !== undefined || (ev.step && ev.step.indexOf("install") === 0)) {
+          $("progressStep").textContent = stepLabel(ev.step);
+        }
+      });
+      since = p.next || since;
+      if (p.finished) {
+        clearInterval(pollTimer);
+        if (p.final_status === "SUCCESS") { onSuccess(); } else { onFailure(); }
+      }
+    }).catch(function () {
+      // Transient (server busy / worker still starting): tolerate a few misses.
+      failCount++;
+      if (failCount > 30) { clearInterval(pollTimer); onFailure(); }
+    });
+  }
+
+  // Reachable login URL. In production the stored site_url (https://<site>) is
+  // correct. In dev the landing page runs on http and a non-standard port
+  // (e.g. :8000) where every site answers by Host header, so target the same
+  // scheme+port with the new site's hostname instead of the https prod URL.
+  function loginUrl() {
+    var loc = window.location;
+    var isDev = loc.protocol === "http:" || !!loc.port;
+    if (isDev && provName) {
+      return loc.protocol + "//" + provName + (loc.port ? ":" + loc.port : "") + "/login";
+    }
+    return (provUrl || "").replace(/\/$/, "") + "/login";
+  }
+
+  function onSuccess() {
+    setBar(100);
+    $("progressStep").textContent = "اكتمل التجهيز";
+    $("resultIcon").textContent = "🎉";
+    $("resultTitle").textContent = "تم إنشاء حسابك بنجاح!";
+    // Login details the user will type into the Rased mobile app.
+    $("infoSite").textContent = provUrl || provName;
+    $("infoEmail").textContent = provEmail;
+    $("loginInfo").style.display = "block";
+    if (CFG.appUrl) {
+      var dl = $("downloadAppBtn");
+      dl.href = CFG.appUrl;
+      dl.style.display = "flex";
+      $("resultMsg").innerHTML =
+        "شركتك التجريبية جاهزة. لإدارتها، <b>حمّل تطبيق راصد للجوال</b> وسجّل الدخول بالبيانات التالية:";
+    } else {
+      $("resultMsg").innerHTML =
+        "شركتك التجريبية جاهزة. سجّل الدخول عبر <b>تطبيق راصد للجوال</b> بالبيانات التالية — وسيصلك رابط التطبيق على بريدك:";
+    }
+    $("gotoSiteBtn").href = loginUrl();
+    $("resultView").classList.add("show");
+  }
+
+  function onFailure() {
+    $("progressStep").textContent = "تعذّر إكمال التجهيز";
+    var res = $("resultView");
+    $("resultIcon").textContent = "⚠️";
+    $("resultTitle").textContent = "حدث خطأ أثناء التجهيز";
+    $("resultMsg").textContent = "لم يكتمل إنشاء الموقع. يرجى المحاولة مرة أخرى، وإذا تكرّر الأمر تواصل معنا.";
+    $("gotoSiteBtn").style.display = "none";
+    $("retryWrap").style.display = "block";
+    res.classList.add("show");
+  }
+
+  var retry = $("retryBtn");
+  if (retry) { retry.addEventListener("click", function () { window.location.reload(); }); }
+})();
+</script>
+{% endblock %}
