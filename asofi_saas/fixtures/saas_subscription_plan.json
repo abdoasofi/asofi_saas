@@ -1,6 +1,20 @@
 [
  {
   "doctype": "SaaS Subscription Plan",
+  "name": "trial",
+  "plan_name": "التجريبية",
+  "plan_code": "trial",
+  "is_active": 1,
+  "max_collectors": 3,
+  "max_zones": 2,
+  "max_beneficiaries": 200,
+  "allow_photo_capture": 1,
+  "allow_reports_export": 0,
+  "monthly_price": 0,
+  "description": "تجربة مجانية 14 يومًا: حتى 3 محصلين ومنطقتين و200 مستفيد — بدون بطاقة ائتمان."
+ },
+ {
+  "doctype": "SaaS Subscription Plan",
   "name": "basic",
   "plan_name": "الأساسية",
   "plan_code": "basic",

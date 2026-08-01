@@ -67,6 +67,48 @@
    "options": "Email"
   },
   {
+   "fieldname": "public_trial_section",
+   "fieldtype": "Section Break",
+   "label": "Public Trial (self-service)"
+  },
+  {
+   "fieldname": "enable_public_trial",
+   "fieldtype": "Check",
+   "label": "Enable Public Trial Signup",
+   "default": "0",
+   "description": "When on, the /asofisaas landing page lets visitors self-provision a trial site. Keep off until DNS + bench provisioning are ready on this host."
+  },
+  {
+   "fieldname": "trial_plan",
+   "fieldtype": "Link",
+   "label": "Trial Plan",
+   "options": "SaaS Subscription Plan",
+   "description": "Subscription plan assigned to self-service trial sites (e.g. trial)."
+  },
+  {
+   "fieldname": "column_break_trial",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trial_days",
+   "fieldtype": "Int",
+   "label": "Trial Length (days)",
+   "default": "14"
+  },
+  {
+   "fieldname": "trial_site_url_template",
+   "fieldtype": "Data",
+   "label": "Trial Site URL Template",
+   "default": "https://{site}",
+   "description": "How to build a trial site's reachable URL from its name. Production: https://{site}. Local dev (bench on :8000): http://{site}:8000."
+  },
+  {
+   "fieldname": "mobile_app_url",
+   "fieldtype": "Data",
+   "label": "Mobile App Download URL",
+   "description": "Public link to download the Rased mobile app. Shown to new trial users on the success screen and in the welcome email."
+  },
+  {
    "fieldname": "domain_section",
    "fieldtype": "Section Break",
    "label": "Domains & SSL"
