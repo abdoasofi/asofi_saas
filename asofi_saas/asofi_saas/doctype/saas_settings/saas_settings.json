@@ -109,6 +109,18 @@
    "description": "Public link to download the Rased mobile app. Shown to new trial users on the success screen and in the welcome email."
   },
   {
+   "fieldname": "sales_whatsapp",
+   "fieldtype": "Data",
+   "label": "Sales WhatsApp (international format)",
+   "description": "e.g. 967771234567. Shown on the pricing page as a contact button for paid plans. Leave empty to hide it."
+  },
+  {
+   "fieldname": "sales_email",
+   "fieldtype": "Data",
+   "label": "Sales Email",
+   "description": "Fallback contact for paid-plan enquiries when no WhatsApp number is set."
+  },
+  {
    "fieldname": "domain_section",
    "fieldtype": "Section Break",
    "label": "Domains & SSL"

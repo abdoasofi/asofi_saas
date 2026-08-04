@@ -132,6 +132,57 @@ class TestCreateTrialTenant(FrappeTestCase):
         self.assertEqual(str(doc.subscription_end), str(add_days(today(), 14)))
         self.assertTrue(enq.called)  # provisioning worker + welcome email
 
+    def test_a_visitors_plan_choice_is_recorded_but_grants_nothing(self):
+        # The pricing page sends whichever card the visitor clicked. This
+        # endpoint is guest-callable, so treating that value as an entitlement
+        # would let anyone self-provision the most expensive tier for free.
+        _configure(enable=1, suffix="", plan="trial", days=14)
+        _make_plan("trial")
+        _make_plan("premium")
+
+        with patch.object(frappe, "enqueue"), patch.object(frappe.db, "commit"):
+            tenant.create_trial_tenant(
+                company_name="ACME Premium",
+                subdomain="acme-premium",
+                admin_email="boss@acme.com",
+                phone="777123456",
+                password="secret123",
+                requested_plan="premium",
+            )
+
+        doc = frappe.get_doc("Managed Company", "acme-premium")
+        self.assertEqual(doc.subscription_plan, "trial")  # what they GET
+        self.assertEqual(doc.requested_plan, "premium")  # what they ASKED FOR
+
+    def test_an_unknown_or_inactive_plan_is_dropped_not_stored(self):
+        # The value lands in a Link field, so unchecked text would either break
+        # the record or park junk on it.
+        _configure(enable=1, suffix="", plan="trial", days=14)
+        _make_plan("trial")
+        _make_plan("retired")
+        frappe.db.set_value("SaaS Subscription Plan", "retired", "is_active", 0)
+
+        self.assertIsNone(tenant._sanitize_requested_plan("no-such-plan"))
+        self.assertIsNone(tenant._sanitize_requested_plan("retired"))
+        self.assertIsNone(tenant._sanitize_requested_plan("  "))
+        self.assertIsNone(tenant._sanitize_requested_plan(None))
+        self.assertEqual(tenant._sanitize_requested_plan(" trial "), "trial")
+
+    def test_a_signup_with_no_plan_click_still_works(self):
+        _configure(enable=1, suffix="", plan="trial", days=14)
+        _make_plan("trial")
+        with patch.object(frappe, "enqueue"), patch.object(frappe.db, "commit"):
+            tenant.create_trial_tenant(
+                company_name="ACME Direct",
+                subdomain="acme-direct",
+                admin_email="direct@acme.com",
+                phone="777123456",
+                password="secret123",
+            )
+        doc = frappe.get_doc("Managed Company", "acme-direct")
+        self.assertFalse(doc.requested_plan)
+        self.assertEqual(doc.subscription_plan, "trial")
+
     def test_rejects_short_password(self):
         _configure(enable=1, suffix="")
         _make_plan("trial")

@@ -34,9 +34,19 @@ scheduler_events = {
 # ------------------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------------------
-fixtures = [
-    {"dt": "SaaS Subscription Plan"},
-]
+# Module 6 — plan definitions are NOT fixtures.
+#
+# Two separate mechanisms, and only one of them is this hook:
+#   * this `fixtures` list drives `bench export-fixtures` (writing them OUT);
+#   * `bench migrate` calls `sync_fixtures`, which scans the app's `fixtures/`
+#     DIRECTORY and re-imports every .json it finds there, ignoring this list
+#     entirely (frappe/utils/fixtures.py:import_fixtures).
+#
+# So emptying this list is not enough — the seed file also had to move out of
+# `fixtures/` (it now lives in `seed/`). Otherwise every migrate silently
+# restored plan limits and feature gates to whatever was frozen into the app,
+# undoing whatever the operator had configured.
+fixtures = []
 
 # ------------------------------------------------------------------------------
 # Testing

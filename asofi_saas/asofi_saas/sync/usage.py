@@ -67,6 +67,17 @@ def pull_usage(company):
                 "usage_zones": _int(data.get("zones")),
                 "usage_beneficiaries": _int(ben.get("total")),
                 "usage_beneficiaries_active": _int(ben.get("active")),
+                # Module 6: Modules 1-5 were invisible to this console until
+                # now — an operator could neither bill on usage nor notice a
+                # tenant burning through an operator-provided AI key.
+                "usage_branches": _int(data.get("branches")),
+                "usage_employees": _int(data.get("employees")),
+                "usage_incidents_open": _int(data.get("incidents_open")),
+                "usage_violations": _int(data.get("violations")),
+                "usage_messages_30d": _int(data.get("messages_30d")),
+                "usage_ai_tokens": _int(data.get("ai_tokens_this_month")),
+                "usage_ai_calls": _int(data.get("ai_calls_this_month")),
+                "usage_ocr_reads": _int(data.get("ocr_reads_30d")),
                 "usage_last_activity": data.get("last_reading_date"),
                 "usage_synced_on": now_datetime(),
                 "usage_error": "",

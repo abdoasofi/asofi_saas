@@ -154,6 +154,7 @@ def _create_company_and_enqueue(
     admin_password=None,
     is_trial=0,
     signup_ip=None,
+    requested_plan=None,
 ):
     """Register the Managed Company and queue the provisioning worker.
 
@@ -205,6 +206,9 @@ def _create_company_and_enqueue(
             "contact_email": contact_email,
             "is_trial": 1 if is_trial else 0,
             "signup_ip": signup_ip,
+            # A record of what the visitor was actually shopping for. Never
+            # used to decide entitlements — see create_trial_tenant.
+            "requested_plan": requested_plan,
             "provision_status": "Queued",
         }
     ).insert(ignore_permissions=True)

@@ -9,6 +9,8 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, today
 
+from asofi_saas.asofi_saas.subscription.push import PLAN_FIELDS
+
 
 def _ensure_admin():
     frappe.only_for("System Manager")
@@ -39,6 +41,9 @@ _COMPANY_LIST_FIELDS = [
     "site_name",
     "site_url",
     "subscription_plan",
+    # What the visitor clicked on the pricing page before signing up for a
+    # trial — the lead worth calling back. Never an entitlement.
+    "requested_plan",
     "subscription_status",
     "subscription_start",
     "subscription_end",
@@ -178,22 +183,12 @@ def push_company(company):
 def list_plans(active_only=0):
     _ensure_admin()
     filters = {"is_active": 1} if int(active_only or 0) else {}
+    # Driven by the same tuple the push uses, so a knob added to a plan cannot
+    # be invisible in the console or silently dropped on the way to a tenant.
     return frappe.get_all(
         "SaaS Subscription Plan",
         filters=filters,
-        fields=[
-            "name",
-            "plan_name",
-            "plan_code",
-            "is_active",
-            "monthly_price",
-            "max_collectors",
-            "max_zones",
-            "max_beneficiaries",
-            "allow_photo_capture",
-            "allow_reports_export",
-            "description",
-        ],
+        fields=["name", "plan_code", *PLAN_FIELDS],
         order_by="monthly_price asc",
     )
 
@@ -209,17 +204,7 @@ def upsert_plan(**kwargs):
     else:
         doc = frappe.new_doc("SaaS Subscription Plan")
         doc.plan_code = code
-    for f in (
-        "plan_name",
-        "is_active",
-        "monthly_price",
-        "max_collectors",
-        "max_zones",
-        "max_beneficiaries",
-        "allow_photo_capture",
-        "allow_reports_export",
-        "description",
-    ):
+    for f in PLAN_FIELDS:
         if f in kwargs and kwargs[f] is not None:
             doc.set(f, kwargs[f])
     if not doc.plan_name:
