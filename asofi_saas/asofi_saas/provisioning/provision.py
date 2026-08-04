@@ -1,8 +1,12 @@
 """Automated provisioning of a new company site.
 
 End-to-end: ``bench new-site`` -> install apps -> set the control-plane secret in
-the new site's config -> create the Rased Manager user -> mark the Managed Company
-Active -> push its initial subscription.
+the new site's config -> create the product's manager user -> mark the Managed
+Company Active -> push its initial subscription.
+
+Every product-specific detail — which bench, which apps, which site_config key
+the secret goes into, which role the manager gets — comes from the company's
+SaaS Product via `provisioning.drivers`. Nothing here knows what Rased is.
 
 Design choices (learned from an earlier SaaS app):
 - The background worker accepts **keyword** arguments, so no RQ-compat wrapper is
@@ -19,6 +23,7 @@ import subprocess
 import frappe
 from frappe import _
 
+from asofi_saas.asofi_saas.provisioning import drivers
 from asofi_saas.asofi_saas.subscription.push import push_subscription
 
 logger = frappe.logger("asofi_saas.provision", allow_site=True)
@@ -30,6 +35,8 @@ _REDACT_AFTER = {
     "--admin-password",
     "--password",
     "rased_control_plane_secret",
+    "control_plane_secret",
+    "edupulse_control_plane_secret",
 }
 
 
@@ -44,7 +51,14 @@ def _settings():
     return frappe.get_single("SaaS Settings")
 
 
-def _bench_path():
+def _bench_path(product=None):
+    """Per product. Rased on v15 and EduPulse on v16 cannot share a bench, so
+    the global in SaaS Settings survives only for rows with no product yet."""
+    if product:
+        path = (drivers.for_product(product).cwd or "").strip()
+        if path:
+            return path
+
     p = (_settings().bench_path or "").strip()
     if not p:
         frappe.throw(_("SaaS Settings: Bench Path is not set."))
@@ -340,18 +354,18 @@ def provision_worker(
         # Read settings inside the try so a misconfiguration (missing bench path,
         # root password, etc.) surfaces as a visible "Failed" with a message,
         # instead of leaving the company stuck on "Queued" with no trace.
-        bench_path = _bench_path()
-        bench = _bench_exec()
+        driver = drivers.for_product(doc.product)
+        bench_path = driver.cwd
         root_pw = _root_password()
         secret = doc.get_password("control_plane_secret")
-        apps = _apps_to_install()
+        apps = driver.apps()
 
         doc.db_set("provision_status", "Creating")
         frappe.db.commit()
         _publish(operation_id, "start", "info", f"بدء إنشاء الموقع {site}", user)
 
         _run_streaming(
-            [bench, "new-site", site, "--mariadb-root-password", root_pw, "--admin-password", admin_password],
+            driver.create_site(site, root_pw, admin_password),
             bench_path,
             operation_id,
             "new-site",
@@ -360,7 +374,7 @@ def provision_worker(
 
         for app in apps:
             _run_streaming(
-                [bench, "--site", site, "install-app", app],
+                driver.install_app(site, app),
                 bench_path,
                 operation_id,
                 f"install:{app}",
@@ -372,10 +386,7 @@ def provision_worker(
         # error on first web login. Mark setup complete so the site is usable
         # immediately; the manager's day-to-day interface is the Rased mobile app.
         _run(
-            [
-                bench, "--site", site, "execute", "frappe.db.set_single_value",
-                "--kwargs", "{'doctype': 'System Settings', 'fieldname': 'setup_complete', 'value': 1}",
-            ],
+            driver.finalize_setup(site),
             bench_path,
             operation_id,
             "finalize-setup",
@@ -383,7 +394,7 @@ def provision_worker(
         )
 
         _run(
-            [bench, "--site", site, "set-config", "rased_control_plane_secret", secret],
+            driver.set_secret(site, secret),
             bench_path,
             operation_id,
             "set-secret",
@@ -391,14 +402,10 @@ def provision_worker(
         )
 
         _run(
-            [
-                bench, "--site", site, "add-user", manager_email,
-                "--first-name", (manager_first_name or "Manager"),
-                "--last-name", (manager_last_name or ""),
-                "--password", manager_password,
-                "--user-type", "System User",
-                "--add-role", "Rased Manager",
-            ],
+            driver.add_manager(
+                site, manager_email, manager_password,
+                manager_first_name, manager_last_name,
+            ),
             bench_path,
             operation_id,
             "add-manager",
@@ -471,8 +478,9 @@ def _setup_domain_ssl(doc, operation_id, user):
     provisioning failure. Requires nginx + certbot on the host and passwordless
     sudo for the bench user (`bench setup sudoers <user>`).
     """
-    bench_path = _bench_path()
-    bench = _bench_exec()
+    driver = drivers.for_product(doc.product)
+    bench_path = driver.cwd
+    bench = driver.executable
     site = doc.site_name
     custom_domain = (doc.get("custom_domain") or "").strip()
     target = custom_domain or site

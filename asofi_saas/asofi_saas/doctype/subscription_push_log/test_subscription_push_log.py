@@ -6,11 +6,16 @@ from frappe.utils import add_days, today
 
 from asofi_saas.asofi_saas.subscription import lifecycle
 
+# Every company and plan belongs to a product now — the console serves
+# more than Rased. These fixtures pin the one they were written for.
+TEST_PRODUCT_FIXTURE = "rased"
+
 
 def _plan(code="standard"):
     if not frappe.db.exists("SaaS Subscription Plan", code):
         frappe.get_doc(
-            {"doctype": "SaaS Subscription Plan", "plan_code": code, "plan_name": code}
+            {"doctype": "SaaS Subscription Plan", "plan_code": code, "plan_name": code,
+             "product": TEST_PRODUCT_FIXTURE}
         ).insert()
 
 
@@ -19,6 +24,7 @@ def _company(site, end, status="Active"):
     return frappe.get_doc(
         {
             "doctype": "Managed Company",
+            "product": TEST_PRODUCT_FIXTURE,
             "company_name": site,
             "site_name": site,
             "site_url": f"http://{site}",

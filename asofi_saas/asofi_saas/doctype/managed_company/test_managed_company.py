@@ -9,11 +9,16 @@ from asofi_saas.asofi_saas.provisioning import provision as prov
 from asofi_saas.asofi_saas.subscription import push as push_mod
 from asofi_saas.asofi_saas.sync import usage as usage_mod
 
+# Every company and plan belongs to a product now — the console serves
+# more than Rased. These fixtures pin the one they were written for.
+TEST_PRODUCT_FIXTURE = "rased"
+
 
 def _make_plan(code="standard"):
     if not frappe.db.exists("SaaS Subscription Plan", code):
         frappe.get_doc(
-            {"doctype": "SaaS Subscription Plan", "plan_code": code, "plan_name": code}
+            {"doctype": "SaaS Subscription Plan", "plan_code": code, "plan_name": code,
+             "product": TEST_PRODUCT_FIXTURE}
         ).insert()
 
 
@@ -22,6 +27,7 @@ def _make_company(site, provision="Draft", status="Active", plan="standard", **k
     return frappe.get_doc(
         {
             "doctype": "Managed Company",
+            "product": TEST_PRODUCT_FIXTURE,
             "company_name": kw.get("company_name", "Test Co"),
             "site_name": site,
             "site_url": kw.get("site_url", f"http://{site}"),

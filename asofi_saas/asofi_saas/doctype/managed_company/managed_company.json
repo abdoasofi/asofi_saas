@@ -8,6 +8,16 @@
  "title_field": "company_name",
  "fields": [
   {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "SaaS Product",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Decides which bench the site is created on, which apps are installed, and which endpoints receive the push."
+  },
+  {
    "fieldname": "company_name",
    "fieldtype": "Data",
    "label": "Company Name",
@@ -144,6 +154,14 @@
    "fieldname": "usage_section",
    "fieldtype": "Section Break",
    "label": "Usage (synced from site)"
+  },
+  {
+   "fieldname": "usage_metrics",
+   "fieldtype": "Table",
+   "label": "Usage",
+   "options": "SaaS Company Usage",
+   "read_only": 1,
+   "description": "Live counts pulled from the tenant, named in the product's own vocabulary."
   },
   {
    "fieldname": "usage_collectors",

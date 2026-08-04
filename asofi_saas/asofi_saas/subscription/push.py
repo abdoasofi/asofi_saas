@@ -17,6 +17,9 @@ from frappe.utils import now_datetime
 
 logger = frappe.logger("asofi_saas.push", allow_site=True)
 
+#: Fallback only. Every product declares its own `apply_path`; this is what a
+#: company created before SaaS Product existed used, so an un-migrated row keeps
+#: reaching the same endpoint instead of silently pushing nowhere.
 APPLY_PATH = "/api/method/utility_billing.rased.api.subscription.apply_subscription"
 PUSH_TIMEOUT = 20  # seconds
 
@@ -52,7 +55,8 @@ def push_subscription(company, action="Push Subscription"):
     plan_definition = _plan_definition(plan_code)
     if plan_definition:
         payload["plan"] = json.dumps(plan_definition)
-    url = doc.site_url.rstrip("/") + APPLY_PATH
+
+    url = doc.site_url.rstrip("/") + _apply_path(doc)
 
     http_status = None
     ok = False
@@ -92,43 +96,26 @@ def push_subscription(company, action="Push Subscription"):
     return {"ok": ok, "http_status": http_status, "message": error or "OK"}
 
 
-#: Mirrors `utility_billing...subscription.PLAN_FIELDS`. The tenant ignores
-#: anything outside its own list, so the two can be updated independently
-#: without a bad push, but they are meant to stay identical.
-PLAN_FIELDS = (
-    "plan_name",
-    "is_active",
-    "monthly_price",
-    "max_collectors",
-    "max_zones",
-    "max_beneficiaries",
-    "max_branches",
-    "max_employees",
-    "max_ai_tokens",
-    "allow_photo_capture",
-    "allow_reports_export",
-    "allow_branches",
-    "allow_website",
-    "allow_hr",
-    "allow_incidents",
-    "allow_tracking",
-    "allow_messaging",
-    "allow_ai_analytics",
-    "allow_meter_ocr",
-    "description",
-)
+def _apply_path(doc):
+    """Where this company's product listens for a subscription push."""
+    if not doc.product:
+        return APPLY_PATH
+
+    product = frappe.get_cached_doc("SaaS Product", doc.product)
+    return product.apply_path or APPLY_PATH
 
 
 def _plan_definition(plan_code):
-    """The plan as this console defines it, ready to travel."""
+    """The plan as this console defines it, ready to travel.
+
+    The vocabulary now comes from the plan's product, so a school plan carries
+    `max_students` and a utility plan carries `max_collectors` — over the same
+    wire, in the same shape. The tenant ignores keys it does not know.
+    """
     if not plan_code or not frappe.db.exists("SaaS Subscription Plan", plan_code):
         return None
-    plan = frappe.get_doc("SaaS Subscription Plan", plan_code)
-    definition = {"plan_code": plan_code}
-    for field in PLAN_FIELDS:
-        value = plan.get(field)
-        definition[field] = value if value is not None else 0
-    return definition
+
+    return frappe.get_doc("SaaS Subscription Plan", plan_code).definition()
 
 
 def _extract_error(resp):

@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-08-05 09:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "istable": 1,
+ "field_order": [
+  "metric_key",
+  "label_ar",
+  "metric_kind",
+  "icon",
+  "unit_ar"
+ ],
+ "fields": [
+  {
+   "fieldname": "metric_key",
+   "fieldtype": "Data",
+   "label": "Key",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3,
+   "description": "Wire name, e.g. max_students or students. Travels verbatim in the push/usage payload."
+  },
+  {
+   "fieldname": "label_ar",
+   "fieldtype": "Data",
+   "label": "التسمية",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "metric_kind",
+   "fieldtype": "Select",
+   "label": "Kind",
+   "options": "Limit\nFeature\nUsage",
+   "default": "Limit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Material icon name the console renders, e.g. people_outline."
+  },
+  {
+   "fieldname": "unit_ar",
+   "fieldtype": "Data",
+   "label": "الوحدة",
+   "columns": 2
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Asofi SaaS",
+ "name": "SaaS Product Metric",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
