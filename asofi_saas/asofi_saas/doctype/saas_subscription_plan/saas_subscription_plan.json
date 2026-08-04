@@ -8,6 +8,16 @@
  "document_type": "Setup",
  "fields": [
   {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "SaaS Product",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Plans never cross products — a school pays per student, a utility pays per collector."
+  },
+  {
    "fieldname": "plan_name",
    "fieldtype": "Data",
    "label": "Plan Name",
@@ -36,9 +46,28 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "sb_generic",
+   "fieldtype": "Section Break",
+   "label": "Limits & Features",
+   "description": "Rows are validated against the product's metric catalogue. The legacy Rased fields below exist only for tenants that predate this table."
+  },
+  {
+   "fieldname": "limits",
+   "fieldtype": "Table",
+   "label": "Limits",
+   "options": "SaaS Plan Limit"
+  },
+  {
+   "fieldname": "features",
+   "fieldtype": "Table",
+   "label": "Features",
+   "options": "SaaS Plan Feature"
+  },
+  {
    "fieldname": "limits_section",
    "fieldtype": "Section Break",
-   "label": "Limits (0 = unlimited)"
+   "label": "Legacy Rased Limits",
+   "collapsible": 1
   },
   {
    "fieldname": "max_collectors",
@@ -77,7 +106,8 @@
   {
    "fieldname": "features_section",
    "fieldtype": "Section Break",
-   "label": "Features"
+   "label": "Legacy Rased Features",
+   "collapsible": 1
   },
   {
    "fieldname": "allow_photo_capture",

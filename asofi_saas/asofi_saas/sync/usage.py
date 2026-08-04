@@ -16,8 +16,72 @@ from asofi_saas.asofi_saas.subscription.push import _extract_error
 
 logger = frappe.logger("asofi_saas.usage", allow_site=True)
 
+#: Fallback only — see push.APPLY_PATH for why it still exists.
 USAGE_PATH = "/api/method/utility_billing.rased.api.subscription.get_usage"
 USAGE_TIMEOUT = 20  # seconds
+
+
+def _usage_path(doc):
+    if not doc.product:
+        return USAGE_PATH
+
+    product = frappe.get_cached_doc("SaaS Product", doc.product)
+    return product.usage_path or USAGE_PATH
+
+
+#: Rased answers with a nested shape this console has always flattened. New
+#: products are expected to answer with plain `{metric_key: value}` — so the
+#: nesting is unwrapped here rather than pushed onto every future product.
+_RASED_SHAPE = {
+    "collectors": ("collectors_active", None),
+    "zones": ("zones", None),
+    "beneficiaries": ("beneficiaries", "total"),
+    "beneficiaries_active": ("beneficiaries", "active"),
+    "branches": ("branches", None),
+    "employees": ("employees", None),
+    "incidents_open": ("incidents_open", None),
+    "violations": ("violations", None),
+    "messages_30d": ("messages_30d", None),
+    "ai_tokens": ("ai_tokens_this_month", None),
+    "ai_calls": ("ai_calls_this_month", None),
+    "ocr_reads": ("ocr_reads_30d", None),
+}
+
+
+def _store_metrics(doc, data):
+    """Write the pulled counts into the product-neutral usage table.
+
+    Only keys the product declares are stored. An undeclared key means either a
+    tenant sending something new or a catalogue that has fallen behind — either
+    way, silently persisting it would put an unlabelled number on the operator's
+    dashboard.
+    """
+    if not doc.product:
+        return
+
+    product = frappe.get_cached_doc("SaaS Product", doc.product)
+    declared = product.keys_of("Usage")
+
+    if not declared:
+        return
+
+    doc.set("usage_metrics", [])
+    for key in declared:
+        source, nested = _RASED_SHAPE.get(key, (key, None))
+        value = data.get(source)
+        if nested is not None:
+            value = (value or {}).get(nested)
+
+        doc.append(
+            "usage_metrics",
+            {
+                "metric_key": key,
+                "label_ar": product.label_for(key),
+                "value": _int(value),
+            },
+        )
+
+    doc.save(ignore_permissions=True)
 
 
 def _int(v):
@@ -38,7 +102,7 @@ def pull_usage(company):
     if not secret:
         frappe.throw(f"Managed Company {doc.name} has no control-plane secret set.")
 
-    url = doc.site_url.rstrip("/") + USAGE_PATH
+    url = doc.site_url.rstrip("/") + _usage_path(doc)
     error = ""
     data = None
     try:
@@ -84,6 +148,7 @@ def pull_usage(company):
             },
             update_modified=False,
         )
+        _store_metrics(doc, data)
         return {"ok": True, "usage": data}
 
     doc.db_set(

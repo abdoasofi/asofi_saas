@@ -1,0 +1,215 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:product_code",
+ "creation": "2026-08-05 09:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "product_name",
+  "product_code",
+  "is_active",
+  "cb_identity",
+  "description",
+  "sb_provisioning",
+  "bench_path",
+  "bench_executable",
+  "apps_to_install",
+  "cb_provisioning",
+  "default_site_domain",
+  "secret_config_key",
+  "manager_role",
+  "sb_contract",
+  "apply_path",
+  "usage_path",
+  "sb_trial",
+  "enable_public_trial",
+  "trial_plan",
+  "trial_days",
+  "cb_trial",
+  "trial_site_url_template",
+  "mobile_app_url",
+  "sb_metrics",
+  "metrics"
+ ],
+ "fields": [
+  {
+   "fieldname": "product_name",
+   "fieldtype": "Data",
+   "label": "Product Name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Shown in the console, e.g. راصد or نبض التعلم."
+  },
+  {
+   "fieldname": "product_code",
+   "fieldtype": "Data",
+   "label": "Product Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "Stable slug used as the record name, e.g. rased or edupulse. Never change it once companies exist."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "sb_provisioning",
+   "fieldtype": "Section Break",
+   "label": "Provisioning"
+  },
+  {
+   "fieldname": "bench_path",
+   "fieldtype": "Data",
+   "label": "Bench Path",
+   "reqd": 1,
+   "description": "Products on different Frappe major versions CANNOT share a bench. This is why the path lives here and not in SaaS Settings."
+  },
+  {
+   "fieldname": "bench_executable",
+   "fieldtype": "Data",
+   "label": "Bench Executable",
+   "default": "bench"
+  },
+  {
+   "fieldname": "apps_to_install",
+   "fieldtype": "Small Text",
+   "label": "Apps to Install",
+   "reqd": 1,
+   "description": "One app per line, in install order. e.g. lms then edupulse_core."
+  },
+  {
+   "fieldname": "cb_provisioning",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_site_domain",
+   "fieldtype": "Data",
+   "label": "Default Site Domain"
+  },
+  {
+   "fieldname": "secret_config_key",
+   "fieldtype": "Data",
+   "label": "Secret Config Key",
+   "reqd": 1,
+   "default": "control_plane_secret",
+   "description": "site_config key the control-plane secret is written to. Each product's receiving app reads its own key."
+  },
+  {
+   "fieldname": "manager_role",
+   "fieldtype": "Data",
+   "label": "Manager Role",
+   "description": "Role granted to the first user created on a new site, e.g. Rased Manager or EduPulse Admin."
+  },
+  {
+   "fieldname": "sb_contract",
+   "fieldtype": "Section Break",
+   "label": "Control-Plane Contract",
+   "description": "Endpoints on the tenant site that receive a push and answer a usage pull."
+  },
+  {
+   "fieldname": "apply_path",
+   "fieldtype": "Data",
+   "label": "Apply Subscription Path",
+   "reqd": 1,
+   "description": "e.g. /api/method/edupulse_core.api.subscription.apply_subscription"
+  },
+  {
+   "fieldname": "usage_path",
+   "fieldtype": "Data",
+   "label": "Get Usage Path",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_trial",
+   "fieldtype": "Section Break",
+   "label": "Public Trial"
+  },
+  {
+   "fieldname": "enable_public_trial",
+   "fieldtype": "Check",
+   "label": "Enable Public Trial",
+   "default": "0"
+  },
+  {
+   "fieldname": "trial_plan",
+   "fieldtype": "Link",
+   "label": "Trial Plan",
+   "options": "SaaS Subscription Plan",
+   "depends_on": "enable_public_trial"
+  },
+  {
+   "fieldname": "trial_days",
+   "fieldtype": "Int",
+   "label": "Trial Days",
+   "default": "14",
+   "depends_on": "enable_public_trial"
+  },
+  {
+   "fieldname": "cb_trial",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trial_site_url_template",
+   "fieldtype": "Data",
+   "label": "Trial Site URL Template",
+   "depends_on": "enable_public_trial"
+  },
+  {
+   "fieldname": "mobile_app_url",
+   "fieldtype": "Data",
+   "label": "Mobile App URL",
+   "description": "Each product ships its own app — rased_mobile, edupulse_mobile."
+  },
+  {
+   "fieldname": "sb_metrics",
+   "fieldtype": "Section Break",
+   "label": "Metric Catalogue",
+   "description": "The product's vocabulary. Plans and usage are validated against it, and the console renders its forms and dashboard tiles from it — so adding a metric never needs an app release."
+  },
+  {
+   "fieldname": "metrics",
+   "fieldtype": "Table",
+   "label": "Metrics",
+   "options": "SaaS Product Metric"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-05 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Asofi SaaS",
+ "name": "SaaS Product",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

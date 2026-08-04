@@ -3,12 +3,17 @@ from frappe.tests.utils import FrappeTestCase
 
 from asofi_saas import api
 
+# Every company and plan belongs to a product now — the console serves
+# more than Rased. These fixtures pin the one they were written for.
+TEST_PRODUCT_FIXTURE = "rased"
+
 
 class TestSaaSSubscriptionPlan(FrappeTestCase):
     def test_plan_code_is_stripped(self):
         doc = frappe.get_doc(
             {
                 "doctype": "SaaS Subscription Plan",
+                "product": TEST_PRODUCT_FIXTURE,
                 "plan_code": "  spaced  ",
                 "plan_name": "Spaced",
             }

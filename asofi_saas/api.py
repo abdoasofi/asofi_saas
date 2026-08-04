@@ -9,11 +9,31 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, today
 
-from asofi_saas.asofi_saas.subscription.push import PLAN_FIELDS
+from asofi_saas.asofi_saas.doctype.saas_product import saas_product
+from asofi_saas.asofi_saas.doctype.saas_subscription_plan.saas_subscription_plan import (
+    LEGACY_RASED_FIELDS,
+)
 
 
 def _ensure_admin():
     frappe.only_for("System Manager")
+
+
+def _default_product():
+    """The product to assume when a caller did not name one.
+
+    Unambiguous while exactly one product is active — which keeps console builds
+    that predate the product picker working. The moment a second product goes
+    live, guessing would put a school on a utility bench, so demand a choice.
+    """
+    active = frappe.get_all("SaaS Product", filters={"is_active": 1}, pluck="name")
+
+    if len(active) == 1:
+        return active[0]
+
+    frappe.throw(
+        _("`product` is required: {0} products are active.").format(len(active))
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +146,7 @@ def create_company(**kwargs):
     doc = frappe.get_doc(
         {
             "doctype": "Managed Company",
+            "product": kwargs.get("product") or _default_product(),
             "company_name": kwargs.get("company_name"),
             "site_name": kwargs.get("site_name"),
             "site_url": kwargs.get("site_url"),
@@ -180,37 +201,143 @@ def push_company(company):
 # Plans
 # ---------------------------------------------------------------------------
 @frappe.whitelist()
-def list_plans(active_only=0):
+def list_plans(active_only=0, product=None):
+    """Plans, each carrying the exact payload it would push.
+
+    The console renders limits and features from `definition()` rather than from
+    a fixed column list, so a product whose vocabulary this console has never
+    heard of still displays correctly — no app release required.
+    """
     _ensure_admin()
-    filters = {"is_active": 1} if int(active_only or 0) else {}
-    # Driven by the same tuple the push uses, so a knob added to a plan cannot
-    # be invisible in the console or silently dropped on the way to a tenant.
-    return frappe.get_all(
+
+    filters = {}
+    if int(active_only or 0):
+        filters["is_active"] = 1
+    if product:
+        filters["product"] = product
+
+    out = []
+    for row in frappe.get_all(
         "SaaS Subscription Plan",
         filters=filters,
-        fields=["name", "plan_code", *PLAN_FIELDS],
+        fields=["name", "plan_code", "product", "plan_name", "is_active",
+                "monthly_price", "description"],
         order_by="monthly_price asc",
-    )
+    ):
+        plan = frappe.get_doc("SaaS Subscription Plan", row.name)
+        row["limits"] = [
+            {"key": r.metric_key, "label_ar": r.label_ar, "value": r.value}
+            for r in plan.limits
+        ]
+        row["features"] = [
+            {"key": r.metric_key, "label_ar": r.label_ar, "enabled": bool(r.enabled)}
+            for r in plan.features
+        ]
+        row["definition"] = plan.definition()
+        out.append(row)
+
+    return out
 
 
 @frappe.whitelist()
 def upsert_plan(**kwargs):
+    """Create or update a plan.
+
+    `limits` and `features` accept `{key: value}` maps so the console can post
+    whatever the product's catalogue told it to render. The legacy Rased columns
+    are still writable for older console builds.
+    """
     _ensure_admin()
+
     code = (kwargs.get("plan_code") or "").strip()
     if not code:
         frappe.throw(_("plan_code is required."))
+
     if frappe.db.exists("SaaS Subscription Plan", code):
         doc = frappe.get_doc("SaaS Subscription Plan", code)
     else:
         doc = frappe.new_doc("SaaS Subscription Plan")
         doc.plan_code = code
-    for f in PLAN_FIELDS:
-        if f in kwargs and kwargs[f] is not None:
+
+    for f in ("product", "plan_name", "is_active", "monthly_price", "description"):
+        if kwargs.get(f) is not None:
             doc.set(f, kwargs[f])
+
+    if not doc.product:
+        doc.product = _default_product()
+
+    for f in LEGACY_RASED_FIELDS:
+        if kwargs.get(f) is not None:
+            doc.set(f, kwargs[f])
+
+    _apply_rows(doc, "limits", kwargs.get("limits"), "value")
+    _apply_rows(doc, "features", kwargs.get("features"), "enabled")
+
     if not doc.plan_name:
         doc.plan_name = code
+
     doc.save()
     return {"name": doc.name}
+
+
+def _apply_rows(doc, table, payload, value_field):
+    """Replace a plan's rows from a `{key: value}` map, if one was sent."""
+    if payload is None:
+        return
+
+    if isinstance(payload, str):
+        payload = frappe.parse_json(payload)
+
+    doc.set(table, [])
+    for key, value in (payload or {}).items():
+        doc.append(table, {"metric_key": key, value_field: value})
+
+
+# ---------------------------------------------------------------------------
+# Products
+# ---------------------------------------------------------------------------
+@frappe.whitelist()
+def list_products(active_only=1):
+    """The catalogue the console renders every product-specific form from."""
+    _ensure_admin()
+
+    filters = {"is_active": 1} if int(active_only or 0) else {}
+    out = []
+
+    for name in frappe.get_all("SaaS Product", filters=filters, pluck="name"):
+        doc = frappe.get_cached_doc("SaaS Product", name)
+        out.append(
+            {
+                "name": doc.name,
+                "product_code": doc.product_code,
+                "product_name": doc.product_name,
+                "description": doc.description,
+                "is_active": bool(doc.is_active),
+                "mobile_app_url": doc.mobile_app_url,
+                "enable_public_trial": bool(doc.enable_public_trial),
+                "ready_to_provision": bool(doc.bench_path),
+                "metrics": doc.catalogue(),
+            }
+        )
+
+    return out
+
+
+@frappe.whitelist()
+def get_product(name):
+    _ensure_admin()
+    doc = saas_product.get(name)
+
+    return {
+        "name": doc.name,
+        "product_name": doc.product_name,
+        "bench_path": doc.bench_path,
+        "apps_to_install": doc.apps_to_install,
+        "apply_path": doc.apply_path,
+        "usage_path": doc.usage_path,
+        "ready_to_provision": bool(doc.bench_path),
+        "metrics": doc.catalogue(),
+    }
 
 
 # ---------------------------------------------------------------------------
