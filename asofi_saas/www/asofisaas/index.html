@@ -103,9 +103,20 @@
   .plan__price { font-size: 1.9rem; font-weight: 800; color: var(--primary-dark); margin: 6px 0 4px; }
   .plan__price span { font-size: .9rem; font-weight: 600; color: var(--muted); }
   .plan__desc { color: var(--muted); font-size: .92rem; min-height: 3em; }
-  .plan__features { list-style: none; padding: 0; margin: 16px 0 22px; flex: 1; }
+  .plan__features { list-style: none; padding: 0; margin: 16px 0 22px; }
   .plan__features li { padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; align-items: center; gap: 8px; font-size: .95rem; }
   .plan__features li::before { content: "✓"; color: var(--ok); font-weight: 800; }
+  /* The modules block carries the flex growth so every card's call-to-action
+     lines up, however many modules a tier happens to include. */
+  .plan__modules { flex: 1; display: flex; flex-direction: column; }
+  .plan__modules-title { font-size: .78rem; font-weight: 700; color: var(--muted);
+    letter-spacing: .02em; text-transform: none; }
+  .plan__features--modules { margin: 8px 0 0; }
+  .plan__features--modules li { font-size: .88rem; padding: 5px 0; border-bottom: 0; }
+  .plan__contact { display: block; text-align: center; margin-top: 8px; font-size: .88rem;
+    color: var(--primary-dark); text-decoration: none; font-weight: 700; }
+  .plan__contact:hover { text-decoration: underline; }
+  .chosen-plan { margin-top: 10px; font-weight: 700; color: var(--primary-dark); }
 
   /* Trial form */
   .trial { background: linear-gradient(180deg, var(--bg), #fff); }
@@ -230,7 +241,7 @@
         {% for p in plans %}
         <div class="plan {% if p.plan_code == 'trial' %}plan--featured{% endif %}">
           {% if p.plan_code == 'trial' %}<div class="plan__ribbon">الأنسب للبداية</div>{% endif %}
-          <h3>{{ p.plan_name }}</h3>
+          <h3>{{ p.plan_name | e }}</h3>
           <div class="plan__price">
             {% if p.monthly_price and p.monthly_price > 0 %}
               {{ "{:,.0f}".format(p.monthly_price) }} <span>ر.ي / شهريًا</span>
@@ -238,17 +249,43 @@
               مجانًا <span>· {{ trial_days }} يومًا</span>
             {% endif %}
           </div>
-          <div class="plan__desc">{{ p.description or "" }}</div>
+          <div class="plan__desc">{{ (p.description or "") | e }}</div>
           <ul class="plan__features">
             <li>محصّلون: {{ p.max_collectors if p.max_collectors else "غير محدود" }}</li>
             <li>مناطق: {{ p.max_zones if p.max_zones else "غير محدود" }}</li>
             <li>مستفيدون: {{ "{:,}".format(p.max_beneficiaries) if p.max_beneficiaries else "غير محدود" }}</li>
+            <li>فروع: {{ p.max_branches if p.max_branches else "غير محدود" }}</li>
+            <li>موظفون: {{ p.max_employees if p.max_employees else "غير محدود" }}</li>
             {% if p.allow_photo_capture %}<li>توثيق بالصور</li>{% endif %}
             {% if p.allow_reports_export %}<li>تصدير التقارير</li>{% endif %}
           </ul>
-          <a href="#trial" class="btn {% if p.plan_code == 'trial' %}btn--primary{% else %}btn--ghost{% endif %}">
+          {% if p.modules %}
+          <div class="plan__modules">
+            <span class="plan__modules-title">الوحدات المشمولة</span>
+            <ul class="plan__features plan__features--modules">
+              {% for m in p.modules %}<li>{{ m | e }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          {# Every card records which plan was clicked, so a visitor who wants a
+             paid tier is not silently filed as an anonymous trial. #}
+          <a href="#trial"
+             class="btn {% if p.plan_code == 'trial' %}btn--primary{% else %}btn--ghost{% endif %}"
+             data-plan="{{ p.plan_code | e }}"
+             data-plan-name="{{ p.plan_name | e }}">
             {% if p.plan_code == 'trial' %}ابدأ التجربة{% else %}ابدأ بالتجربة أولًا{% endif %}
           </a>
+          {% if p.monthly_price and p.monthly_price > 0 and (sales_whatsapp or sales_email) %}
+          <a class="btn btn--link plan__contact"
+             {% if sales_whatsapp %}
+               href="https://wa.me/{{ sales_whatsapp | e }}?text={{ ('أرغب بالاشتراك في خطة ' ~ p.plan_name) | urlencode }}"
+             {% else %}
+               href="mailto:{{ sales_email | e }}?subject={{ ('استفسار عن خطة ' ~ p.plan_name) | urlencode }}"
+             {% endif %}
+             target="_blank" rel="noopener">
+            تواصل بنا للاشتراك
+          </a>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -261,6 +298,7 @@
       <div class="section-head">
         <h2>أنشئ موقعك التجريبي الآن</h2>
         <p>املأ البيانات التالية ليُنشأ موقعك الخاص خلال دقائق. تجربة مجانية {{ trial_days }} يومًا بدون بطاقة ائتمان.</p>
+        <p class="chosen-plan" id="chosenPlan" hidden></p>
       </div>
 
       <div class="trial-box">
@@ -413,6 +451,20 @@
   function showError(msg) { errBox.textContent = msg; errBox.classList.add("show"); errBox.scrollIntoView({ behavior: "smooth", block: "center" }); }
   function clearError() { errBox.classList.remove("show"); }
 
+  // ---- remember which plan card sent the visitor here ----
+  var chosenPlan = "";
+  var chosenPlanEl = $("chosenPlan");
+  Array.prototype.forEach.call(document.querySelectorAll("[data-plan]"), function (el) {
+    el.addEventListener("click", function () {
+      chosenPlan = el.getAttribute("data-plan") || "";
+      var label = el.getAttribute("data-plan-name") || "";
+      if (chosenPlanEl && label) {
+        chosenPlanEl.textContent = "الخطة التي تهمّك: " + label + " — تبدأ بتجربة مجانية أولًا.";
+        chosenPlanEl.hidden = false;
+      }
+    });
+  });
+
   if (form) {
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
@@ -423,7 +475,10 @@
         subdomain: $("subdomain").value.trim().toLowerCase(),
         admin_email: $("adminEmail").value.trim(),
         phone: $("phone").value.trim(),
-        password: $("password").value
+        password: $("password").value,
+        // Recorded as a sales signal only — the server always grants the
+        // configured trial plan regardless of what is sent here.
+        requested_plan: chosenPlan
       };
       if (!payload.company_name) { return showError("يرجى إدخال اسم الشركة."); }
       if (!payload.subdomain) { return showError("يرجى إدخال اسم النطاق الفرعي."); }

@@ -145,9 +145,32 @@ def _assert_email_free(email):
         frappe.throw(_("توجد تجربة قائمة بالفعل لهذا البريد الإلكتروني."))
 
 
+def _sanitize_requested_plan(plan_code):
+    """Which advertised plan the visitor clicked, or None.
+
+    Anything that is not a currently ACTIVE public plan is dropped rather than
+    stored: the value arrives from an anonymous form post and ends up in a Link
+    field, so an unchecked string would either break the record or park
+    arbitrary text on it.
+    """
+    plan_code = (plan_code or "").strip()
+    if not plan_code:
+        return None
+    if not frappe.db.exists("SaaS Subscription Plan", {"name": plan_code, "is_active": 1}):
+        return None
+    return plan_code
+
+
 @frappe.whitelist(allow_guest=True)
 @rate_limit(key="admin_email", limit=5, seconds=3600)
-def create_trial_tenant(company_name=None, subdomain=None, admin_email=None, phone=None, password=None):
+def create_trial_tenant(
+    company_name=None,
+    subdomain=None,
+    admin_email=None,
+    phone=None,
+    password=None,
+    requested_plan=None,
+):
     """Provision a free-trial site for a website visitor.
 
     Returns ``{operation_id, company, site_name, site_url}``. The onboarding page
@@ -177,7 +200,12 @@ def create_trial_tenant(company_name=None, subdomain=None, admin_email=None, pho
 
     _assert_email_free(admin_email)
 
+    # The plan actually granted is ALWAYS the configured trial plan. The
+    # visitor's pick is recorded separately and deliberately never feeds this
+    # line: this endpoint is guest-callable, so treating a client-supplied plan
+    # as an entitlement would let anyone self-provision the premium tier.
     plan = (settings.trial_plan or "trial").strip()
+    requested_plan = _sanitize_requested_plan(requested_plan)
     days = int(settings.trial_days or 14)
     start = today()
     end = add_days(start, days)
@@ -206,6 +234,7 @@ def create_trial_tenant(company_name=None, subdomain=None, admin_email=None, pho
             contact_email=admin_email,
             is_trial=1,
             signup_ip=signup_ip,
+            requested_plan=requested_plan,
         )
         # Welcome email is best-effort and must never fail the signup.
         frappe.enqueue(

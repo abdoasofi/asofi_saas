@@ -44,6 +44,14 @@ def push_subscription(company, action="Push Subscription"):
         "subscription_end": str(doc.subscription_end) if doc.subscription_end else None,
         "company_name": doc.company_name,
     }
+
+    # Module 6: send the plan's DEFINITION, not only its code. The tenant used
+    # to read limits from a fixture shipped inside utility_billing, so editing
+    # a plan here changed nothing on any site. Now this console is the author
+    # and every push carries the current limits and feature flags with it.
+    plan_definition = _plan_definition(plan_code)
+    if plan_definition:
+        payload["plan"] = json.dumps(plan_definition)
     url = doc.site_url.rstrip("/") + APPLY_PATH
 
     http_status = None
@@ -82,6 +90,45 @@ def push_subscription(company, action="Push Subscription"):
     logger.info(f"push {doc.name} action={action} ok={ok} http={http_status}")
 
     return {"ok": ok, "http_status": http_status, "message": error or "OK"}
+
+
+#: Mirrors `utility_billing...subscription.PLAN_FIELDS`. The tenant ignores
+#: anything outside its own list, so the two can be updated independently
+#: without a bad push, but they are meant to stay identical.
+PLAN_FIELDS = (
+    "plan_name",
+    "is_active",
+    "monthly_price",
+    "max_collectors",
+    "max_zones",
+    "max_beneficiaries",
+    "max_branches",
+    "max_employees",
+    "max_ai_tokens",
+    "allow_photo_capture",
+    "allow_reports_export",
+    "allow_branches",
+    "allow_website",
+    "allow_hr",
+    "allow_incidents",
+    "allow_tracking",
+    "allow_messaging",
+    "allow_ai_analytics",
+    "allow_meter_ocr",
+    "description",
+)
+
+
+def _plan_definition(plan_code):
+    """The plan as this console defines it, ready to travel."""
+    if not plan_code or not frappe.db.exists("SaaS Subscription Plan", plan_code):
+        return None
+    plan = frappe.get_doc("SaaS Subscription Plan", plan_code)
+    definition = {"plan_code": plan_code}
+    for field in PLAN_FIELDS:
+        value = plan.get(field)
+        definition[field] = value if value is not None else 0
+    return definition
 
 
 def _extract_error(resp):

@@ -1,0 +1,157 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"hdrSc\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>اختصارات</b></span>\", \"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"الشركات المُدارة\", \"col\": 3}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"اشتراكات نشطة\", \"col\": 3}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"تجارب جارية\", \"col\": 3}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"دفعات فاشلة\", \"col\": 3}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"تهيئة فاشلة\", \"col\": 3}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"خطط الاشتراك\", \"col\": 3}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"سجل الدفعات\", \"col\": 3}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"إعدادات المنصّة\", \"col\": 3}}, {\"id\": \"hdrCards\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>المستندات</b></span>\", \"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"الشركات والاشتراكات\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"التشخيص\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"الإعداد\", \"col\": 4}}]",
+ "creation": "2026-08-02 16:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "organization",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Asofi SaaS",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "الشركات والاشتراكات",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Managed Company",
+   "link_count": 0,
+   "link_to": "Managed Company",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SaaS Subscription Plan",
+   "link_count": 0,
+   "link_to": "SaaS Subscription Plan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "التشخيص",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subscription Push Log",
+   "link_count": 0,
+   "link_to": "Subscription Push Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "الإعداد",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SaaS Settings",
+   "link_count": 0,
+   "link_to": "SaaS Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-02 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Asofi SaaS",
+ "name": "Asofi SaaS",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "doc_view": "List",
+   "label": "الشركات المُدارة",
+   "link_to": "Managed Company",
+   "stats_filter": "{}",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "اشتراكات نشطة",
+   "link_to": "Managed Company",
+   "stats_filter": "{\"subscription_status\": \"Active\"}",
+   "type": "DocType",
+   "color": "Green"
+  },
+  {
+   "doc_view": "List",
+   "label": "تجارب جارية",
+   "link_to": "Managed Company",
+   "stats_filter": "{\"subscription_status\": \"Trial\"}",
+   "type": "DocType",
+   "color": "Blue"
+  },
+  {
+   "doc_view": "List",
+   "label": "دفعات فاشلة",
+   "link_to": "Managed Company",
+   "stats_filter": "{\"last_push_status\": \"Failed\"}",
+   "type": "DocType",
+   "color": "Red"
+  },
+  {
+   "doc_view": "List",
+   "label": "تهيئة فاشلة",
+   "link_to": "Managed Company",
+   "stats_filter": "{\"provision_status\": \"Failed\"}",
+   "type": "DocType",
+   "color": "Red"
+  },
+  {
+   "doc_view": "List",
+   "label": "خطط الاشتراك",
+   "link_to": "SaaS Subscription Plan",
+   "stats_filter": "{}",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "سجل الدفعات",
+   "link_to": "Subscription Push Log",
+   "stats_filter": "{}",
+   "type": "DocType",
+   "color": "Orange"
+  },
+  {
+   "doc_view": "List",
+   "label": "إعدادات المنصّة",
+   "link_to": "SaaS Settings",
+   "stats_filter": "{}",
+   "type": "DocType"
+  }
+ ],
+ "title": "Asofi SaaS"
+}

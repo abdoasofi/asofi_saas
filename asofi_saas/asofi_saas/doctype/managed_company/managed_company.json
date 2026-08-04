@@ -174,6 +174,54 @@
    "read_only": 1
   },
   {
+   "fieldname": "usage_branches",
+   "fieldtype": "Int",
+   "label": "Branches",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_employees",
+   "fieldtype": "Int",
+   "label": "Employees",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_incidents_open",
+   "fieldtype": "Int",
+   "label": "Open Incidents",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_violations",
+   "fieldtype": "Int",
+   "label": "Violations",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_messages_30d",
+   "fieldtype": "Int",
+   "label": "Messages (30d)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_ai_tokens",
+   "fieldtype": "Int",
+   "label": "AI Tokens (this month)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_ai_calls",
+   "fieldtype": "Int",
+   "label": "AI Calls (this month)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_ocr_reads",
+   "fieldtype": "Int",
+   "label": "Meter OCR Reads (30d)",
+   "read_only": 1
+  },
+  {
    "fieldname": "usage_last_activity",
    "fieldtype": "Date",
    "label": "Last Activity",
@@ -209,6 +257,15 @@
    "read_only": 1,
    "in_standard_filter": 1,
    "description": "Set when the site was created by a visitor via the public /asofisaas trial form."
+  },
+  {
+   "fieldname": "requested_plan",
+   "fieldtype": "Link",
+   "label": "Plan the Visitor Asked About",
+   "options": "SaaS Subscription Plan",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "description": "What the visitor clicked on the pricing page. A sales signal only — it never grants anything; the trial always runs on SaaS Settings.trial_plan."
   },
   {
    "fieldname": "signup_ip",

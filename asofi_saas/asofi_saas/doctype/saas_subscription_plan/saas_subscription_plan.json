@@ -63,6 +63,18 @@
    "default": "0"
   },
   {
+   "fieldname": "max_branches",
+   "fieldtype": "Int",
+   "label": "Max Branches",
+   "default": "0"
+  },
+  {
+   "fieldname": "max_employees",
+   "fieldtype": "Int",
+   "label": "Max Employees",
+   "default": "0"
+  },
+  {
    "fieldname": "features_section",
    "fieldtype": "Section Break",
    "label": "Features"
@@ -78,6 +90,66 @@
    "fieldtype": "Check",
    "label": "Allow Reports Export",
    "default": "0"
+  },
+  {
+   "fieldname": "allow_branches",
+   "fieldtype": "Check",
+   "label": "Allow Multi-Branch",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_website",
+   "fieldtype": "Check",
+   "label": "Allow Public Website & CMS",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_hr",
+   "fieldtype": "Check",
+   "label": "Allow HR & Payroll",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_incidents",
+   "fieldtype": "Check",
+   "label": "Allow Incidents & Violations",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_tracking",
+   "fieldtype": "Check",
+   "label": "Allow Live Tracking",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_messaging",
+   "fieldtype": "Check",
+   "label": "Allow In-App Messaging",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_ai_analytics",
+   "fieldtype": "Check",
+   "label": "Allow AI Analytics",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_meter_ocr",
+   "fieldtype": "Check",
+   "label": "Allow Meter OCR",
+   "default": "1"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI Cost Ceiling"
+  },
+  {
+   "fieldname": "max_ai_tokens",
+   "fieldtype": "Int",
+   "label": "Max AI Tokens / Month",
+   "default": "0",
+   "description": "Operator ceiling the company manager cannot raise. 0 = no ceiling from the plan."
   },
   {
    "fieldname": "description",
