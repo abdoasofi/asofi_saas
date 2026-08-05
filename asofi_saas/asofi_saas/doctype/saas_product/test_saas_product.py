@@ -242,3 +242,45 @@ class TestBenchDriver(FrappeTestCase):
 
         with self.assertRaises(frappe.ValidationError):
             drivers.for_product(TEST_PRODUCT)
+
+
+class TestVocabularyIsolation(FrappeTestCase):
+    """A plan must travel with its own product's words and nobody else's."""
+
+    def setUp(self):
+        super().setUp()
+        self.product = _product()
+
+    def test_a_non_rased_plan_carries_no_rased_keys(self):
+        """The legacy fallback exists for Rased tenants provisioned before the
+        catalogue. Applying it to every product puts `allow_meter_ocr` inside a
+        school's contract — harmless on the wire, wrong in the document."""
+        name = f"{TEST_PRODUCT}_isolation"
+        if frappe.db.exists("SaaS Subscription Plan", name):
+            frappe.delete_doc("SaaS Subscription Plan", name, force=True)
+
+        plan = frappe.new_doc("SaaS Subscription Plan")
+        plan.update({"plan_code": name, "plan_name": "X", "product": TEST_PRODUCT})
+        plan.append("limits", {"metric_key": "max_widgets", "value": 5})
+        plan.insert(ignore_permissions=True)
+
+        definition = plan.definition()
+
+        leaked = [f for f in LEGACY_RASED_FIELDS if f in definition]
+        self.assertEqual(leaked, [], f"Rased vocabulary leaked: {leaked}")
+        self.assertEqual(definition["max_widgets"], 5)
+
+    def test_a_rased_plan_still_carries_them(self):
+        plans = frappe.get_all(
+            "SaaS Subscription Plan",
+            filters={"product": create_products.RASED},
+            pluck="name",
+            limit=1,
+        )
+        if not plans:
+            self.skipTest("no Rased plans on this site")
+
+        definition = frappe.get_doc("SaaS Subscription Plan", plans[0]).definition()
+
+        for field in LEGACY_RASED_FIELDS:
+            self.assertIn(field, definition, f"{field} vanished from the Rased wire")

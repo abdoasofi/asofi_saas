@@ -116,7 +116,10 @@ class TestConsoleApi(FrappeTestCase):
 
     def test_create_and_update_company(self):
         _make_plan("basic")
+        # Two products are active now, so the console must say which one. This
+        # is the guard that stops a school being created on the utility bench.
         res = api.create_company(
+            product=TEST_PRODUCT_FIXTURE,
             company_name="ACME",
             site_name="api-create.example",
             site_url="http://api-create.example",
