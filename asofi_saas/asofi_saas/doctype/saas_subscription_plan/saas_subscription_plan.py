@@ -4,6 +4,12 @@ from frappe.model.document import Document
 
 from asofi_saas.asofi_saas.doctype.saas_product import saas_product
 
+#: The one product whose plans still carry typed columns. Scoping the fallback
+#: matters: without it a school's plan travels with `max_collectors` and
+#: `allow_meter_ocr` attached — harmless, since a tenant ignores keys it does
+#: not know, but it puts a utility's vocabulary inside a school's contract.
+LEGACY_PRODUCT = "rased"
+
 #: Kept so Rased tenants provisioned before the metric catalogue keep receiving
 #: exactly the payload they were built to parse. Delete this list — and the
 #: matching columns — once every Rased plan has been moved onto the rows.
@@ -97,9 +103,10 @@ class SaaSSubscriptionPlan(Document):
         for row in self.features or []:
             out[row.metric_key] = 1 if row.enabled else 0
 
-        for field in LEGACY_RASED_FIELDS:
-            if field not in out:
-                value = self.get(field)
-                out[field] = value if value is not None else 0
+        if self.product == LEGACY_PRODUCT:
+            for field in LEGACY_RASED_FIELDS:
+                if field not in out:
+                    value = self.get(field)
+                    out[field] = value if value is not None else 0
 
         return out

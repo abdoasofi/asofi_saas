@@ -57,6 +57,9 @@ def get_console_context():
 # ---------------------------------------------------------------------------
 _COMPANY_LIST_FIELDS = [
     "name",
+    # Which product this company runs. The console filters, groups and routes
+    # on it, and the company form locks it after creation.
+    "product",
     "company_name",
     "site_name",
     "site_url",
@@ -462,10 +465,77 @@ def get_dashboard():
         "expiring_soon": soon,
         "recent_failures": failures,
         "estimated_mrr": float(mrr or 0),
+        # Kept so a console build that predates the metric catalogue keeps
+        # rendering. New builds read `usage_by_product`.
         "usage": {
             "collectors": int(usage.collectors or 0),
             "zones": int(usage.zones or 0),
             "beneficiaries": int(usage.beneficiaries or 0),
             "synced": int(usage.synced or 0),
         },
+        "usage_by_product": _usage_by_product(),
     }
+
+
+def _usage_by_product():
+    """Usage totalled per product, in each product's own words.
+
+    A single flat total is meaningless once the console sells more than one
+    thing — adding a school's students to a utility's collectors produces a
+    number that describes nothing.
+    """
+    totals = frappe.db.sql(
+        """
+        select mc.product, u.metric_key, coalesce(sum(u.value), 0) as total
+        from `tabSaaS Company Usage` u
+        join `tabManaged Company` mc on mc.name = u.parent
+        where u.parenttype = 'Managed Company'
+        group by mc.product, u.metric_key
+        """,
+        as_dict=True,
+    )
+
+    per_product = {}
+    for row in totals:
+        per_product.setdefault(row.product, {})[row.metric_key] = int(row.total or 0)
+
+    counts = {
+        row.product: row
+        for row in frappe.db.sql(
+            """
+            select product,
+                   count(name) as companies,
+                   sum(case when usage_synced_on is not null then 1 else 0 end) as synced
+            from `tabManaged Company`
+            group by product
+            """,
+            as_dict=True,
+        )
+    }
+
+    out = []
+    for name in frappe.get_all("SaaS Product", filters={"is_active": 1}, pluck="name"):
+        doc = frappe.get_cached_doc("SaaS Product", name)
+        values = per_product.get(name, {})
+        count = counts.get(name)
+
+        out.append(
+            {
+                "product": name,
+                "product_name": doc.product_name,
+                "companies": int(count.companies) if count else 0,
+                "synced": int(count.synced or 0) if count else 0,
+                "metrics": [
+                    {
+                        "key": m["key"],
+                        "label_ar": m["label_ar"],
+                        "icon": m["icon"],
+                        "value": values.get(m["key"], 0),
+                    }
+                    for m in doc.catalogue()
+                    if m["kind"] == "Usage"
+                ],
+            }
+        )
+
+    return out

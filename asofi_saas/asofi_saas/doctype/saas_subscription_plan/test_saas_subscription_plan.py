@@ -21,7 +21,10 @@ class TestSaaSSubscriptionPlan(FrappeTestCase):
         self.assertEqual(doc.plan_code, "spaced")
 
     def test_upsert_plan_creates_then_updates(self):
-        api.upsert_plan(plan_code="gold", plan_name="Gold", monthly_price=99, max_zones=7)
+        api.upsert_plan(
+            plan_code="gold", plan_name="Gold", monthly_price=99,
+            max_zones=7, product=TEST_PRODUCT_FIXTURE,
+        )
         self.assertEqual(frappe.db.get_value("SaaS Subscription Plan", "gold", "max_zones"), 7)
         api.upsert_plan(plan_code="gold", max_zones=9)
         self.assertEqual(frappe.db.get_value("SaaS Subscription Plan", "gold", "max_zones"), 9)
