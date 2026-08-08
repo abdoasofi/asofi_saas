@@ -13,8 +13,12 @@ Rased's vocabulary.
 
 from asofi_saas.asofi_saas.public.storefront import products
 
+# Taken from the mark rather than written fresh: the wordmark already carries
+# a line, and a page that says something different from the logo above it
+# reads as two companies.
 PLATFORM_NAME = "أسوفي"
-PLATFORM_TAGLINE = "منصّة أنظمة الأعمال"
+PLATFORM_TAGLINE = "نُقدّمُ أنظمة.. نَصنعُ التَحَوّل"
+PLATFORM_KICKER = "SYSTEMS · TECHNOLOGY · TRANSFORMATION"
 
 
 def get_context(context):
@@ -22,6 +26,7 @@ def get_context(context):
     context.title = f"{PLATFORM_NAME} — {PLATFORM_TAGLINE}"
     context.platform_name = PLATFORM_NAME
     context.platform_tagline = PLATFORM_TAGLINE
+    context.platform_kicker = PLATFORM_KICKER
 
     # Trial availability is decided per product, by the product's own record.
     # Advertising "ابدأ التجربة" against a product whose trial plan is unset
