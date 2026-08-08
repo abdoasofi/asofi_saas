@@ -10,6 +10,8 @@
   "metric_key",
   "label_ar",
   "metric_kind",
+  "public_on_pricing",
+  "public_label_ar",
   "icon",
   "unit_ar"
  ],
@@ -54,6 +56,22 @@
    "fieldtype": "Data",
    "label": "الوحدة",
    "columns": 2
+  },
+  {
+   "fieldname": "public_on_pricing",
+   "fieldtype": "Check",
+   "label": "يُعرض في الأسعار",
+   "default": "0",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Advertise this metric on the public pricing page. Not every metric is a selling point — Rased meters max_ai_tokens but has never listed it — and the storefront used to carry that editorial choice as a hardcoded list, which meant it could only ever describe one product."
+  },
+  {
+   "fieldname": "public_label_ar",
+   "fieldtype": "Data",
+   "label": "تسمية الأسعار",
+   "depends_on": "public_on_pricing",
+   "description": "Selling wording for the pricing page. The console needs a short column header — «التتبّع» — while the storefront is selling «التتبّع المباشر للمحصلين». Two different jobs for the same metric. Falls back to the label when empty."
   }
  ],
  "index_web_pages_for_search": 1,

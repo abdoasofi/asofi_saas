@@ -250,14 +250,12 @@
             {% endif %}
           </div>
           <div class="plan__desc">{{ (p.description or "") | e }}</div>
+          {# Built from the product's metric catalogue, not from a fixed set of
+             column names. A limit the plan does not declare is absent here
+             rather than rendered as zero — and zero, which does mean unlimited,
+             is now only ever shown for a limit the plan actually states. #}
           <ul class="plan__features">
-            <li>محصّلون: {{ p.max_collectors if p.max_collectors else "غير محدود" }}</li>
-            <li>مناطق: {{ p.max_zones if p.max_zones else "غير محدود" }}</li>
-            <li>مستفيدون: {{ "{:,}".format(p.max_beneficiaries) if p.max_beneficiaries else "غير محدود" }}</li>
-            <li>فروع: {{ p.max_branches if p.max_branches else "غير محدود" }}</li>
-            <li>موظفون: {{ p.max_employees if p.max_employees else "غير محدود" }}</li>
-            {% if p.allow_photo_capture %}<li>توثيق بالصور</li>{% endif %}
-            {% if p.allow_reports_export %}<li>تصدير التقارير</li>{% endif %}
+            {% for l in p.limits %}<li>{{ l.label | e }}: {{ l.value | e }}</li>{% endfor %}
           </ul>
           {% if p.modules %}
           <div class="plan__modules">
