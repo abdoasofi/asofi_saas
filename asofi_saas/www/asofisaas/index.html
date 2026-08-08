@@ -7,19 +7,42 @@
 {% block style %}
 {% include "templates/storefront/style.html" %}
 <style>
-  .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .hero--platform .wrap { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+  .hero--platform .lead { max-width: 56ch; }
+  .hero--platform .cta-row { justify-content: center; }
+  .kicker { margin-top: 22px; color: var(--muted); font-size: .78rem;
+            letter-spacing: .22em; font-weight: 700; }
+
+  .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
   .product-card {
-    display: flex; flex-direction: column; gap: 10px;
-    padding: 26px; border: 1px solid var(--line); border-radius: 16px;
-    background: #fff; transition: border-color .15s, transform .15s;
+    display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+    padding: 36px 28px 30px; border: 1px solid var(--line); border-radius: 20px;
+    background: #fff; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
-  .product-card:hover { border-color: var(--primary); transform: translateY(-2px); }
-  .product-card h3 { font-size: 20px; }
-  .product-card p { color: var(--muted); flex: 1; }
-  .product-card .go { margin-top: 6px; align-self: flex-start; }
-  .soon { font-size: 12px; color: var(--muted); border: 1px dashed var(--line);
-          border-radius: 999px; padding: 3px 10px; align-self: flex-start; }
-  @media (max-width: 560px) { .products { grid-template-columns: 1fr; } }
+  /* A gradient hairline along the top edge, revealed on hover. It ties the
+     card to the brand without tinting the logo sitting inside it. */
+  .product-card::before {
+    content: ""; position: absolute; inset-inline: 0; top: 0; height: 3px;
+    background: var(--brand); opacity: 0; transition: opacity .18s ease;
+  }
+  .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #d6e2ee; }
+  .product-card:hover::before { opacity: 1; }
+  .product-mark { width: 148px; height: 148px; object-fit: contain; margin-bottom: 2px; }
+  /* The lockup already carries the product name. Keeping a visible <h3>
+     under it prints the name twice; keeping it in the accessibility tree
+     keeps the card readable to a screen reader and to search. */
+  .product-card h3 { position: absolute; width: 1px; height: 1px; overflow: hidden;
+                     clip-path: inset(50%); white-space: nowrap; }
+  .product-card h3 { font-size: 1.4rem; margin: 0; }
+  .product-card p { color: var(--muted); flex: 1; margin: 0; }
+  .product-card .go { margin-top: 10px; }
+  .soon { font-size: .78rem; color: var(--muted); border: 1px dashed var(--line);
+          border-radius: 999px; padding: 4px 12px; }
+  @media (max-width: 560px) {
+    .products { grid-template-columns: 1fr; }
+    .product-mark { width: 104px; height: 104px; }
+  }
 </style>
 {% endblock %}
 
@@ -32,15 +55,22 @@
     </div>
   </header>
 
-  <div class="hero">
+  {# The platform hero is deliberately single-column and centred: it has no
+     product to demonstrate, and a half-empty two-column grid — the shape the
+     product pages use — would read as a missing screenshot. #}
+  <div class="hero hero--platform">
     <div class="wrap">
       <div>
         <span class="eyebrow">{{ platform_tagline }}</span>
-        <h1>أنظمة <span>سحابية</span> جاهزة لقطاعك</h1>
+        <h1>أنظمة <span>سحابية</span> مبنيّة لقطاعها</h1>
         <p class="lead">
-          كل نظام في أسوفي مبنيّ لمجاله وحده — لا قالب عام يُلبَس لكل قطاع.
+          كل نظام في أسوفي مصمَّم لمجاله وحده — لا قالب عام يُلبَس لكل قطاع.
           موقع مستقل لكل جهة، وبياناتها معزولة عن غيرها تماماً.
         </p>
+        <div class="cta-row">
+          <a href="#products" class="btn btn--primary btn--lg">استعرض الأنظمة</a>
+        </div>
+        <p class="kicker">{{ platform_kicker }}</p>
       </div>
     </div>
   </div>
@@ -55,6 +85,12 @@
       <div class="products">
         {% for p in products %}
         <div class="product-card">
+          {# The product's own mark. It is what a customer already recognises
+             from the app on their phone, and it carries the identity far
+             better than a name in the platform's typeface. #}
+          <img class="product-mark"
+               src="/assets/asofi_saas/images/{{ p.product_code }}.png"
+               alt="{{ p.product_name }}" onerror="this.remove()">
           <h3>{{ p.product_name }}</h3>
           <p>{{ p.description or "" }}</p>
           {# The link is always offered — a product with no trial still has a
