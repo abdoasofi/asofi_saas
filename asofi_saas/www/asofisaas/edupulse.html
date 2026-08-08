@@ -32,7 +32,8 @@
           {% if enable_public_trial %}
           <a href="#trial" class="btn btn--primary btn--lg">ابدأ تجربتك المجانية لمدة {{ trial_days }} يوماً</a>
           {% endif %}
-          <a href="#pricing" class="btn btn--ghost btn--lg">استعرض الخطط</a>
+          <a href="#pricing" class="btn btn--lg
+             {% if enable_public_trial %}btn--ghost{% else %}btn--primary{% endif %}">استعرض الخطط</a>
         </div>
         <p class="reassure">✔ <b>موقع مستقل لكل مدرسة</b> · بيانات الطلاب معزولة · تطبيق للطالب وولي الأمر</p>
       </div>

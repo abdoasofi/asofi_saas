@@ -97,13 +97,30 @@
   .hero .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 26px; }
   .hero .reassure { margin-top: 16px; color: var(--muted); font-size: .95rem; }
   .hero .reassure b { color: var(--ink); }
-  .hero-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 22px; }
-  .hero-card .row { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px dashed var(--line); }
-  .hero-card .row:last-child { border-bottom: 0; }
-  .hero-card .ic { width: 42px; height: 42px; border-radius: 12px; background: var(--primary-soft); color: var(--primary-dark);
-    display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; flex: 0 0 auto; }
-  .hero-card .row div b { display: block; }
-  .hero-card .row div small { color: var(--muted); }
+  .hero-card { background: #fff; border: 1px solid var(--line); border-radius: 20px;
+    box-shadow: var(--shadow); padding: 10px; }
+  .hero-card .row { display: flex; align-items: flex-start; gap: 14px;
+    padding: 15px 14px; border-radius: 14px; transition: background .15s ease; }
+  /* A hairline between rows, not a dashed rule under every one — the dashes
+     read as a form, and the last row's border had to be undone by hand. */
+  .hero-card .row + .row { border-top: 1px solid var(--line); }
+  .hero-card .row:hover { background: var(--bg); }
+
+  /* The text block must FILL the row. Content-sized, it shrink-wraps to its
+     longest line and floats in the middle of a wide card — which is what made
+     the copy look detached from the icon it belongs to. */
+  .hero-card .row > div { flex: 1; min-width: 0; }
+  .hero-card .row b { display: block; font-size: 1rem; line-height: 1.55; }
+  .hero-card .row small { display: block; color: var(--muted);
+    font-size: .875rem; line-height: 1.6; }
+
+  /* Aligned to the first line of text, not centred against the whole block:
+     against two lines a centred icon sits visibly below the title it labels.
+     The 3px offsets the cap height. */
+  .hero-card .ic { width: 44px; height: 44px; border-radius: 13px; flex: 0 0 auto;
+    margin-top: 3px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.22rem; color: var(--primary-dark);
+    background: linear-gradient(135deg, rgba(23,168,155,.16), rgba(29,78,216,.13)); }
 
   /* Sections */
   section { padding: clamp(56px, 7vw, 92px) 0; }
@@ -121,8 +138,10 @@
   .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px;
     box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
   .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #d6e2ee; }
-  .card .ic { width: 50px; height: 50px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; background: var(--primary-soft); color: var(--primary-dark); margin-bottom: 14px; }
+  .card .ic { width: 52px; height: 52px; border-radius: 15px; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 1.45rem; margin-bottom: 16px;
+    color: var(--primary-dark);
+    background: linear-gradient(135deg, rgba(23,168,155,.16), rgba(29,78,216,.13)); }
   .card h3 { font-size: 1.25rem; }
   .card p { color: var(--muted); margin: 0; }
 
