@@ -11,6 +11,8 @@ second product at all, and when one appeared its plan was advertised through
 Rased's vocabulary.
 """
 
+import frappe
+
 from asofi_saas.asofi_saas.public.storefront import products
 
 # Taken from the mark rather than written fresh: the wordmark already carries
@@ -31,6 +33,13 @@ def get_context(context):
     # Trial availability is decided per product, by the product's own record.
     # Advertising "ابدأ التجربة" against a product whose trial plan is unset
     # would walk a visitor into a signup that cannot complete.
+    context.brand_icon = "asofisaas"
+    context.favicon = "/assets/asofi_saas/images/icon/asofisaas-48.png"
+    context.og_image = frappe.utils.get_url(
+        "/assets/asofi_saas/images/og/asofisaas-og.png"
+    )
+    context.og_description = PLATFORM_TAGLINE
+
     context.products = products()
 
     return context

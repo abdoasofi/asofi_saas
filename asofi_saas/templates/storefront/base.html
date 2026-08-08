@@ -4,6 +4,11 @@
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 
+{% block head_include %}
+{{ head_include or "" }}
+{% include "templates/storefront/head.html" %}
+{% endblock %}
+
 {% block style %}
 {% include "templates/storefront/style.html" %}
 {% endblock %}
