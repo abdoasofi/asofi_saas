@@ -1,11 +1,18 @@
-"""Context for the public Rased / Asofi SaaS marketing + trial-onboarding page.
+"""Context for the public marketing + trial-onboarding page.
 
 Runs as the website visitor (Guest). Reads are done with permission-free helpers
 (``frappe.get_all`` / ``frappe.db.get_single_value``) so anonymous visitors can see
 the plans and the trial configuration without any Desk role.
+
+Plan cards are built from the product's metric catalogue rather than from a
+fixed set of columns. The previous version selected Rased's fields by name and
+labelled them in the template, which is why a second product could not be
+described here at all — and why, when one appeared, its plan was rendered
+through Rased's vocabulary.
 """
 
 import frappe
+from frappe.utils import cint
 
 from asofi_saas.asofi_saas.public.tenant import _domain_suffix
 
@@ -17,34 +24,98 @@ PROGRESS_METHOD = "asofi_saas.asofi_saas.public.tenant.get_trial_progress"
 
 #: The product this page sells.
 #:
-#: Every word on it is Rased's — the hero, the module labels below, the plan
-#: columns the template reads. It is not a generic storefront, and until it is
-#: it must not list another product's plans: `edupulse_standard` was appearing
-#: between Rased's tiers, and because the template renders a zero limit as
-#: "غير محدود", a 500-riyal schools plan was advertised as an unlimited water
-#: utility plan. Naming the product here is also the seam a real multi-product
-#: storefront will hang on.
+#: The marketing copy in index.html is still Rased's, and the trial flow this
+#: page posts to still provisions a Rased site, so the page sells one product.
+#: Naming it keeps that honest — and keeps another product's plans off it.
 PRODUCT = "rased"
 
-#: The modules a buyer is actually choosing between, in selling order.
-#: Kept here rather than in the template so the field list and the Arabic
-#: labels stay in one place — a gate added to a plan without a label here is
-#: simply not advertised, never rendered as a raw fieldname.
-PUBLIC_MODULES = (
-    ("allow_branches", "الفروع المتعددة"),
-    ("allow_website", "الموقع الإلكتروني ونماذج الطلبات"),
-    ("allow_hr", "الموارد البشرية والرواتب"),
-    ("allow_incidents", "البلاغات والمخالفات"),
-    ("allow_tracking", "التتبّع المباشر للمحصلين"),
-    ("allow_messaging", "المراسلات الداخلية"),
-    ("allow_ai_analytics", "تحليلات الذكاء والتنبؤ"),
-    ("allow_meter_ocr", "قراءة العدّاد بالصورة"),
-)
+UNLIMITED = "غير محدود"
+
+
+def _advertised(product):
+    """The metrics this product sells, in the order its catalogue lists them.
+
+    `public_on_pricing` carries an editorial decision that used to live in
+    Python: Rased meters `max_ai_tokens` and has never advertised it, so
+    showing every metric would have started selling something nobody priced.
+    """
+    doc = frappe.get_cached_doc("SaaS Product", product)
+
+    return [
+        m
+        for m in doc.metrics
+        if m.public_on_pricing and m.metric_kind in ("Limit", "Feature")
+    ]
+
+
+def _limit_text(value, unit=None):
+    """Zero means unlimited. A metric the plan never mentions is not shown.
+
+    Conflating those two is what let a schools plan read as a water utility
+    with unlimited collectors: it has no collector limit at all, the absence
+    was read as zero, and zero has always meant unlimited here.
+    """
+    value = cint(value)
+    if value <= 0:
+        return UNLIMITED
+
+    text = f"{value:,}"
+    return f"{text} {unit}".strip() if unit else text
+
+
+def _plan_cards(product):
+    metrics = _advertised(product)
+    limits = [m for m in metrics if m.metric_kind == "Limit"]
+    features = [m for m in metrics if m.metric_kind == "Feature"]
+
+    plans = frappe.get_all(
+        "SaaS Subscription Plan",
+        filters={"is_active": 1, "product": product},
+        fields=["name", "plan_code", "plan_name", "monthly_price", "description"],
+        order_by="monthly_price asc",
+    )
+
+    for plan in plans:
+        values = {
+            r.metric_key: r.value
+            for r in frappe.get_all(
+                "SaaS Plan Limit",
+                filters={"parent": plan.name},
+                fields=["metric_key", "value"],
+            )
+        }
+        enabled = {
+            r.metric_key
+            for r in frappe.get_all(
+                "SaaS Plan Feature",
+                filters={"parent": plan.name, "enabled": 1},
+                fields=["metric_key"],
+            )
+        }
+
+        plan["limits"] = [
+            {
+                "label": m.public_label_ar or m.label_ar,
+                "value": _limit_text(values[m.metric_key], m.unit_ar),
+            }
+            for m in limits
+            if m.metric_key in values
+        ]
+        plan["modules"] = [
+            m.public_label_ar or m.label_ar
+            for m in features
+            if m.metric_key in enabled
+        ]
+
+    return plans
 
 
 def get_context(context):
     context.no_cache = 1
-    context.title = "راصد — منصّة إدارة تحصيل الخدمات"
+
+    product = frappe.get_cached_doc("SaaS Product", PRODUCT)
+    context.product = PRODUCT
+    context.title = f"{product.product_name} — {product.description or ''}".strip(" —")
 
     context.enable_public_trial = bool(
         frappe.db.get_single_value("SaaS Settings", "enable_public_trial")
@@ -62,30 +133,7 @@ def get_context(context):
         frappe.db.get_single_value("SaaS Settings", "sales_email") or ""
     ).strip()
 
-    # get_all bypasses user permissions, so Guests still see the public catalogue.
-    plans = frappe.get_all(
-        "SaaS Subscription Plan",
-        filters={"is_active": 1, "product": PRODUCT},
-        fields=[
-            "plan_code",
-            "plan_name",
-            "monthly_price",
-            "max_collectors",
-            "max_zones",
-            "max_beneficiaries",
-            "max_branches",
-            "max_employees",
-            "allow_photo_capture",
-            "allow_reports_export",
-            *[flag for flag, _label in PUBLIC_MODULES],
-            "description",
-        ],
-        order_by="monthly_price asc",
-    )
-    for plan in plans:
-        plan["modules"] = [label for flag, label in PUBLIC_MODULES if plan.get(flag)]
-
-    context.plans = plans
+    context.plans = _plan_cards(PRODUCT)
 
     context.check_method = CHECK_METHOD
     context.create_method = CREATE_METHOD

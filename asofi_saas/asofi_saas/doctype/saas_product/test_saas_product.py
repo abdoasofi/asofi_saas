@@ -371,3 +371,99 @@ class TestStorefrontIsSingleProduct(FrappeTestCase):
             self.skipTest("no active plans for the trial product on this site")
 
         self.assertEqual(tenant._sanitize_requested_plan(own[0]), own[0])
+
+
+def _storefront():
+    """The page controller, loaded by path — www/ is not an importable module."""
+    import importlib.util
+    import os
+
+    path = os.path.join(frappe.get_app_path("asofi_saas"), "www", "asofisaas", "index.py")
+    spec = importlib.util.spec_from_file_location("_storefront_mod", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestPricingIsCatalogueDriven(FrappeTestCase):
+    """Plan cards must speak their own product's language.
+
+    The page used to select Rased's columns by name, so it could describe one
+    product and no other. The damage was not only cosmetic: a limit the plan
+    never declared came back as zero, and zero means "unlimited" here — so a
+    schools plan with no collector limit advertised unlimited collectors.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.page = _storefront()
+
+    def test_zero_still_means_unlimited(self):
+        # Rased's premium tier states every limit as zero on purpose.
+        self.assertEqual(self.page._limit_text(0), self.page.UNLIMITED)
+
+    def test_a_real_limit_is_formatted_with_its_unit(self):
+        self.assertEqual(self.page._limit_text(5000), "5,000")
+        self.assertEqual(self.page._limit_text(20, "غيغابايت"), "20 غيغابايت")
+
+    def test_a_metric_the_plan_never_declares_is_omitted(self):
+        """The whole bug in one assertion.
+
+        `max_storage_gb` is advertised for EduPulse but its standard plan sets
+        no value. Rendering it at all would print "unlimited storage" from a
+        row that does not exist.
+        """
+        cards = self.page._plan_cards("edupulse")
+        if not cards:
+            self.skipTest("no active EduPulse plans on this site")
+
+        declared = {
+            r.metric_key
+            for r in frappe.get_all(
+                "SaaS Plan Limit",
+                filters={"parent": cards[0]["name"]},
+                fields=["metric_key"],
+            )
+        }
+        labels = {
+            m.public_label_ar or m.label_ar
+            for m in frappe.get_cached_doc("SaaS Product", "edupulse").metrics
+            if m.metric_key in declared
+        }
+
+        shown = {row["label"] for row in cards[0]["limits"]}
+        self.assertEqual(
+            shown,
+            labels,
+            "البطاقة تعرض حدوداً لم تُصرّح بها الخطة، أو تُسقط حدوداً صرّحت بها",
+        )
+
+    def test_each_product_gets_its_own_words(self):
+        rased = {
+            row["label"] for card in self.page._plan_cards("rased") for row in card["limits"]
+        }
+        edupulse = {
+            row["label"]
+            for card in self.page._plan_cards("edupulse")
+            for row in card["limits"]
+        }
+
+        if not edupulse:
+            self.skipTest("no active EduPulse plans on this site")
+
+        self.assertEqual(
+            rased & edupulse, set(), "المنتجان يتشاركان مفردات على صفحة الأسعار"
+        )
+
+    def test_an_unadvertised_metric_stays_off_the_page(self):
+        """Rased meters max_ai_tokens and has never sold it."""
+        shown = {
+            row["label"] for card in self.page._plan_cards("rased") for row in card["limits"]
+        }
+        label = frappe.db.get_value(
+            "SaaS Product Metric",
+            {"parent": "rased", "metric_key": "max_ai_tokens"},
+            "label_ar",
+        )
+        if label:
+            self.assertNotIn(label, shown)
