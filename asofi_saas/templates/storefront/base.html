@@ -36,8 +36,12 @@
       </div>
       <div class="plans">
         {% for p in plans %}
-        <div class="plan {% if p.plan_code == 'trial' %}plan--featured{% endif %}">
-          {% if p.plan_code == 'trial' %}<div class="plan__ribbon">الأنسب للبداية</div>{% endif %}
+        {# The free tier is whichever plan the product names as its trial.
+           Looking for the literal code "trial" found Rased's plan and no
+           other product's, so their free tier rendered as a paid one. #}
+        {% set is_trial = trial_plan and p.plan_code == trial_plan %}
+        <div class="plan {% if is_trial %}plan--featured{% endif %}">
+          {% if is_trial %}<div class="plan__ribbon">الأنسب للبداية</div>{% endif %}
           <h3>{{ p.plan_name | e }}</h3>
           <div class="plan__price">
             {% if p.monthly_price and p.monthly_price > 0 %}
@@ -65,10 +69,10 @@
           {# Every card records which plan was clicked, so a visitor who wants a
              paid tier is not silently filed as an anonymous trial. #}
           <a href="#trial"
-             class="btn {% if p.plan_code == 'trial' %}btn--primary{% else %}btn--ghost{% endif %}"
+             class="btn {% if is_trial %}btn--primary{% else %}btn--ghost{% endif %}"
              data-plan="{{ p.plan_code | e }}"
              data-plan-name="{{ p.plan_name | e }}">
-            {% if p.plan_code == 'trial' %}ابدأ التجربة{% else %}ابدأ بالتجربة أولًا{% endif %}
+            {% if is_trial %}ابدأ التجربة{% elif enable_public_trial %}ابدأ بالتجربة أولًا{% else %}اطلب هذه الخطة{% endif %}
           </a>
           {% if p.monthly_price and p.monthly_price > 0 and (sales_whatsapp or sales_email) %}
           <a class="btn btn--link plan__contact"
@@ -110,9 +114,11 @@
         <div class="form-view" id="formView">
           <div class="form-error" id="formError"></div>
           <form id="trialForm" novalidate>
+            {# The signup form is shared, its wording is not: a school reading
+               "مثال: مؤسسة النور للمياه" has landed on the wrong page. #}
             <div class="field">
-              <label for="companyName">اسم الشركة / المنشأة</label>
-              <input type="text" id="companyName" name="company_name" placeholder="مثال: مؤسسة النور للمياه" autocomplete="organization" required>
+              <label for="companyName">{% block org_label %}اسم الجهة{% endblock %}</label>
+              <input type="text" id="companyName" name="company_name" placeholder="{% block org_placeholder %}مثال: مؤسسة النور{% endblock %}" autocomplete="organization" required>
             </div>
 
             <div class="field">
@@ -121,7 +127,7 @@
                 <input type="text" id="subdomain" name="subdomain" placeholder="mycompany" autocomplete="off" spellcheck="false" required>
                 <span class="suffix" id="domainSuffix">{{ domain_suffix or '' }}</span>
               </div>
-              <div class="hint" id="subdomainHint">اكتب اسم موقعك بالإنجليزية فقط، بدون نقاط أو امتداد — مثل: <b>hiziz</b></div>
+              <div class="hint" id="subdomainHint">اكتب اسم موقعك بالإنجليزية فقط، بدون نقاط أو امتداد — مثل: <b>{% block subdomain_example %}hiziz{% endblock %}</b></div>
             </div>
 
             <div class="field">
@@ -160,7 +166,7 @@
               <div class="login-info__row"><span>عنوان موقعك</span><b id="infoSite"></b></div>
               <div class="login-info__row"><span>بريد الدخول</span><b id="infoEmail"></b></div>
             </div>
-            <a href="#" class="btn btn--primary btn--lg" id="downloadAppBtn" target="_blank" rel="noopener" style="display:none">⬇ تحميل تطبيق راصد للجوال</a>
+            <a href="#" class="btn btn--primary btn--lg" id="downloadAppBtn" target="_blank" rel="noopener" style="display:none">⬇ تحميل تطبيق {{ product_name }} للجوال</a>
             <a href="#" class="btn btn--ghost btn--lg" id="gotoSiteBtn" target="_blank" rel="noopener">الدخول عبر المتصفح</a>
             <div id="retryWrap" style="display:none">
               <button class="btn btn--ghost btn--lg" id="retryBtn">المحاولة مرة أخرى</button>
@@ -186,6 +192,11 @@
     checkMethod: {{ check_method | tojson }},
     createMethod: {{ create_method | tojson }},
     progressMethod: {{ progress_method | tojson }},
+    // Which system this page sells. Sent with every call, because the server
+    // takes the bench, the domain suffix and the granted plan from it — and
+    // with two trials open it can no longer infer which one was meant.
+    product: {{ product | tojson }},
+    productName: {{ (product_name or "") | tojson }},
     suffix: {{ (domain_suffix or "") | tojson }},
     appUrl: {{ (mobile_app_url or "") | tojson }},
     enabled: {{ (enable_public_trial | int) }}
@@ -232,7 +243,7 @@
     if (!v) { setHint("اكتب اسم موقعك بالإنجليزية فقط، بدون نقاط أو امتداد — مثل: hiziz"); return; }
     setHint("جارٍ التحقق…", "checking");
     subTimer = setTimeout(function () {
-      apiCall(CFG.checkMethod, { subdomain: v }).then(function (r) {
+      apiCall(CFG.checkMethod, { subdomain: v, product: CFG.product }).then(function (r) {
         if ((subEl.value || "").trim().toLowerCase() !== r.subdomain) { return; } // stale
         if (r.available) { subOK = true; setHint("متاح ✓  " + (r.full_url || (r.subdomain + CFG.suffix)), "ok"); }
         else { subOK = false; setHint(r.reason || "هذا الاسم غير متاح.", "err"); }
@@ -266,6 +277,7 @@
       clearError();
       if (!CFG.enabled) { showError("التسجيل الذاتي غير مُفعّل حاليًا."); return; }
       var payload = {
+        product: CFG.product,
         company_name: $("companyName").value.trim(),
         subdomain: $("subdomain").value.trim().toLowerCase(),
         admin_email: $("adminEmail").value.trim(),
@@ -350,17 +362,15 @@
     });
   }
 
-  // Reachable login URL. In production the stored site_url (https://<site>) is
-  // correct. In dev the landing page runs on http and a non-standard port
-  // (e.g. :8000) where every site answers by Host header, so target the same
-  // scheme+port with the new site's hostname instead of the https prod URL.
+  // Reachable login URL. The server built site_url from the PRODUCT's own URL
+  // template, so it already carries the right scheme and port. Mirroring this
+  // page's own port — which is what the old code did in dev — sends a نبض
+  // التعلم tenant to راصد's bench, since the two benches answer on 8000 and
+  // 8001 and cannot be merged. Only fall back if the template gave nothing.
   function loginUrl() {
+    if (provUrl) { return provUrl.replace(/\/$/, "") + "/login"; }
     var loc = window.location;
-    var isDev = loc.protocol === "http:" || !!loc.port;
-    if (isDev && provName) {
-      return loc.protocol + "//" + provName + (loc.port ? ":" + loc.port : "") + "/login";
-    }
-    return (provUrl || "").replace(/\/$/, "") + "/login";
+    return loc.protocol + "//" + provName + (loc.port ? ":" + loc.port : "") + "/login";
   }
 
   function onSuccess() {
@@ -368,19 +378,20 @@
     $("progressStep").textContent = "اكتمل التجهيز";
     $("resultIcon").textContent = "🎉";
     $("resultTitle").textContent = "تم إنشاء حسابك بنجاح!";
-    // Login details the user will type into the Rased mobile app.
+    // Login details the user will type into this product's mobile app.
     $("infoSite").textContent = provUrl || provName;
     $("infoEmail").textContent = provEmail;
     $("loginInfo").style.display = "block";
+    var app = "تطبيق " + (CFG.productName || "أسوفي") + " للجوال";
     if (CFG.appUrl) {
       var dl = $("downloadAppBtn");
       dl.href = CFG.appUrl;
       dl.style.display = "flex";
       $("resultMsg").innerHTML =
-        "شركتك التجريبية جاهزة. لإدارتها، <b>حمّل تطبيق راصد للجوال</b> وسجّل الدخول بالبيانات التالية:";
+        "موقعك التجريبي جاهز. لإدارته، <b>حمّل " + app + "</b> وسجّل الدخول بالبيانات التالية:";
     } else {
       $("resultMsg").innerHTML =
-        "شركتك التجريبية جاهزة. سجّل الدخول عبر <b>تطبيق راصد للجوال</b> بالبيانات التالية — وسيصلك رابط التطبيق على بريدك:";
+        "موقعك التجريبي جاهز. سجّل الدخول عبر <b>" + app + "</b> بالبيانات التالية — وسيصلك رابط التطبيق على بريدك:";
     }
     $("gotoSiteBtn").href = loginUrl();
     $("resultView").classList.add("show");
