@@ -66,12 +66,14 @@
   .brand .dot { width: 34px; height: 34px; border-radius: 10px; background: var(--brand);
     display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; }
 
-  /* The real mark, when the file is present. `onerror` in the markup removes
-     the <img> and leaves the .dot beside it, so a missing asset degrades to
-     the lettered badge instead of a broken-image icon on a sales page. */
-  .brand .mark { height: 38px; width: auto; display: block; }
+  /* The icon-only mark, derived from the master lockup by scripts/
+     brand_assets.py. The full lockup cannot go here: it bakes in the name, the
+     transliteration and a row of glyphs, all of which turn to mud at this size
+     beside the name in text. `onerror` removes the <img> and leaves the .dot,
+     so a missing asset degrades to the lettered badge rather than a broken
+     image on a page whose job is to look credible. */
+  .brand .mark { width: 34px; height: 34px; object-fit: contain; display: block; }
   .brand .mark + .dot { display: none; }
-  .site-footer .brand .mark { height: 34px; }
 
   /* Hero */
   /* Two tinted pools, one per brand end, kept faint. The gradient belongs on
