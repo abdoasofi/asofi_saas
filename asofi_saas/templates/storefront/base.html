@@ -91,8 +91,13 @@
   <section class="trial" id="trial">
     <div class="wrap">
       <div class="section-head">
+        {% if enable_public_trial %}
         <h2>أنشئ موقعك التجريبي الآن</h2>
         <p>املأ البيانات التالية ليُنشأ موقعك الخاص خلال دقائق. تجربة مجانية {{ trial_days }} يومًا بدون بطاقة ائتمان.</p>
+        {% else %}
+        <h2>اطلب موقعك</h2>
+        <p>التسجيل الذاتي لهذا النظام لم يُفتح بعد — تواصل معنا ونُهيّئ موقعك.</p>
+        {% endif %}
         <p class="chosen-plan" id="chosenPlan" hidden></p>
       </div>
 
