@@ -1,20 +1,19 @@
-"""اختبارات واجهة البيع العامة.
+"""اختبارات إعداد واجهة البيع لكل منتج.
 
-This page is the one surface a stranger sees before paying, and it shipped two
-faults at once: it listed every active plan on the control plane regardless of
-product, and it rendered a missing limit and an unlimited limit identically.
-Together those advertised a schools plan on a water-utility pricing page as
-"unlimited collectors, zones and beneficiaries" for 500 a month — with public
-trial signup switched on, so a visitor could act on it.
+Plan-card rendering is covered next to the catalogue it is driven by, in
+test_saas_product.py. What lives here is the other half: that each storefront
+takes its *configuration* — trial switch, plan, length, domain suffix — from
+its own product record rather than from SaaS Settings.
 
-Both faults are invisible until a second product exists. These tests make the
-second product exist.
+That distinction is the one most likely to creep back, because SaaS Settings
+still holds a `trial_days` and a `default_site_domain` that look authoritative
+and are simply the wrong scope now.
 """
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from asofi_saas.www.asofisaas import index as storefront
+from asofi_saas.asofi_saas.public import storefront
 
 OURS = "_test_store_ours"
 THEIRS = "_test_store_theirs"
@@ -73,88 +72,80 @@ def _card(product, code):
     is whichever row the database hands back first. A test that reads it passes
     or fails on what its neighbours left behind.
     """
-    cards = [c for c in storefront._plan_cards(product) if c["plan_code"] == code]
+    cards = [c for c in storefront.plan_cards(product) if c["plan_code"] == code]
     assert len(cards) == 1, f"توقّعت بطاقة واحدة لـ {code}، وجدت {len(cards)}"
     return cards[0]
 
 
-class TestStorefrontScoping(FrappeTestCase):
-    """One page sells one product."""
+class TestProductContext(FrappeTestCase):
+    """Each storefront is configured by its own product record.
+
+    The trial switch, its plan, its length and its domain suffix all used to be
+    read from SaaS Settings — a single doc holding one set of values. That is
+    what made the public surface single-product no matter how many products the
+    catalogue knew about, and it is the thing most likely to creep back, since
+    SaaS Settings still holds a `trial_days` that looks authoritative.
+    """
 
     def setUp(self):
         super().setUp()
         _product(
             OURS,
-            [
-                {"metric_key": "max_seats", "label_ar": "مقاعد", "metric_kind": "Limit",
-                 "public_on_pricing": 1},
-                {"metric_key": "allow_reports", "label_ar": "تقارير", "metric_kind": "Feature",
-                 "public_on_pricing": 1},
-                # Metered but never advertised — the editorial decision the
-                # catalogue now carries instead of a hardcoded Python list.
-                {"metric_key": "max_tokens", "label_ar": "رموز", "metric_kind": "Limit",
-                 "public_on_pricing": 0},
-            ],
-        )
-        _product(
-            THEIRS,
-            [{"metric_key": "max_collectors", "label_ar": "محصّلون", "metric_kind": "Limit",
+            [{"metric_key": "max_seats", "label_ar": "مقاعد", "metric_kind": "Limit",
               "public_on_pricing": 1}],
         )
+        _plan("_test_ours_trial", OURS, limits=[("max_seats", 3)])
 
-    def test_another_products_plan_is_not_listed(self):
-        """The fault that reached production. A plan belonging to a different
-        product was priced on this page in this page's vocabulary."""
-        _plan("_test_ours_basic", OURS, limits=[("max_seats", 30)])
-        _plan("_test_theirs_basic", THEIRS, limits=[("max_collectors", 5)])
+    def _ctx(self, product):
+        ctx = frappe._dict()
+        storefront.product_context(ctx, product)
+        return ctx
 
-        codes = {p["plan_code"] for p in storefront._plan_cards(OURS)}
+    def test_trial_settings_come_from_the_product_not_saas_settings(self):
+        doc = frappe.get_doc("SaaS Product", OURS)
+        doc.enable_public_trial = 1
+        doc.trial_plan = "_test_ours_trial"
+        doc.trial_days = 21
+        doc.default_site_domain = ".ours.test"
+        doc.save(ignore_permissions=True)
+        frappe.clear_cache()
 
-        self.assertIn("_test_ours_basic", codes)
-        self.assertNotIn("_test_theirs_basic", codes)
+        # Set the global to something different. If it ever leaks through, the
+        # assertions below say so instead of the page quietly showing 14.
+        frappe.db.set_single_value("SaaS Settings", "trial_days", 14)
 
-    def test_a_metric_the_plan_does_not_carry_is_absent_not_unlimited(self):
-        """The other half of the fault, and the one that made it dangerous.
+        ctx = self._ctx(OURS)
 
-        Absence used to read as zero, and zero has always meant unlimited here —
-        so a plan that simply has no collector limit was sold as having an
-        unlimited number of them.
-        """
-        _plan("_test_ours_seatless", OURS, limits=[])
+        self.assertTrue(ctx.enable_public_trial)
+        self.assertEqual(ctx.trial_days, 21)
+        self.assertEqual(ctx.domain_suffix, ".ours.test")
 
-        card = _card(OURS, "_test_ours_seatless")
-        labels = [row["label"] for row in card["limits"]]
+    def test_a_product_without_a_trial_plan_does_not_advertise_a_trial(self):
+        """The switch alone is not enough. Turning it on without setting the
+        plan would offer a signup that cannot resolve what to provision — the
+        visitor fills the form and the request dies at the far end."""
+        doc = frappe.get_doc("SaaS Product", OURS)
+        doc.enable_public_trial = 1
+        doc.trial_plan = None
+        doc.save(ignore_permissions=True)
+        frappe.clear_cache()
 
-        self.assertEqual(card["limits"], [], f"ظهر حدّ لا تحمله الخطة: {labels}")
+        self.assertFalse(self._ctx(OURS).enable_public_trial)
 
-    def test_zero_on_a_metric_the_plan_does_carry_still_means_unlimited(self):
-        """The fix must not overshoot: a top-tier plan states the limit and sets
-        it to zero on purpose, and that has to keep reading as unlimited."""
-        _plan("_test_ours_premium", OURS, limits=[("max_seats", 0)])
+    def test_the_page_titles_itself_from_the_product(self):
+        ctx = self._ctx(OURS)
 
-        card = _card(OURS, "_test_ours_premium")
+        self.assertIn("منتج", ctx.title)
+        self.assertEqual(ctx.product, OURS)
 
-        self.assertEqual(len(card["limits"]), 1)
-        self.assertEqual(card["limits"][0]["value"], storefront.UNLIMITED)
+    def test_only_active_products_are_offered_on_the_platform_page(self):
+        doc = frappe.get_doc("SaaS Product", THEIRS) if frappe.db.exists(
+            "SaaS Product", THEIRS
+        ) else _product(THEIRS, [])
+        doc.is_active = 0
+        doc.save(ignore_permissions=True)
 
-    def test_a_metric_marked_private_is_not_advertised(self):
-        """Metered but unpriced. Showing it would start selling something
-        nobody set a price for."""
-        _plan("_test_ours_tokens", OURS, limits=[("max_seats", 30), ("max_tokens", 900)])
+        codes = {p["product_code"] for p in storefront.products()}
 
-        card = _card(OURS, "_test_ours_tokens")
-        labels = [row["label"] for row in card["limits"]]
-
-        self.assertEqual(labels, ["مقاعد"])
-
-    def test_features_come_from_the_catalogue_not_a_fixed_list(self):
-        """A gate added to a plan without a label used to be simply unadvertised.
-        Now the label travels with the metric, so it cannot be forgotten."""
-        _plan(
-            "_test_ours_full", OURS,
-            limits=[("max_seats", 30)], features=["allow_reports"],
-        )
-
-        card = _card(OURS, "_test_ours_full")
-
-        self.assertEqual(card["modules"], ["تقارير"])
+        self.assertIn(OURS, codes)
+        self.assertNotIn(THEIRS, codes)
