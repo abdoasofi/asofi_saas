@@ -147,6 +147,15 @@ def product_context(context, product_code):
         frappe.db.get_single_value("SaaS Settings", "sales_email") or ""
     ).strip()
 
+    # Frappe's base template reads `favicon` off the context; the rest is
+    # emitted by templates/storefront/head.html.
+    context.brand_icon = product_code
+    context.favicon = f"/assets/asofi_saas/images/icon/{product_code}-48.png"
+    context.og_image = frappe.utils.get_url(
+        f"/assets/asofi_saas/images/og/{product_code}-og.png"
+    )
+    context.og_description = product.description or ""
+
     context.plans = plan_cards(product_code)
 
     context.check_method = CHECK_METHOD
