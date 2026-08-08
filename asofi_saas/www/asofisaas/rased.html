@@ -1,0 +1,66 @@
+{% extends "templates/storefront/base.html" %}
+
+{# راصد — the copy this page has always carried, moved here unchanged. #}
+
+{% block topbar %}
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ر</span> راصد</div>
+      <a href="#trial" class="btn btn--primary">ابدأ التجربة المجانية</a>
+    </div>
+  </header>
+
+{% endblock %}
+
+{% block hero %}
+  <!-- Hero -->
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">منصّة سحابية لإدارة تحصيل الخدمات</span>
+        <h1>أدِر <span>تحصيل</span> فواتير المياه والكهرباء من مكان واحد</h1>
+        <p class="lead">راصد يمنح كل شركة موقعها الخاص لإدارة المحصّلين والمناطق والمستفيدين وقراءات العدّادات — يعمل دون اتصال ويُزامن تلقائيًا.</p>
+        <div class="cta-row">
+          <a href="#trial" class="btn btn--primary btn--lg">ابدأ تجربتك المجانية لمدة {{ trial_days }} يومًا</a>
+          <a href="#pricing" class="btn btn--ghost btn--lg">استعرض الخطط</a>
+        </div>
+        <p class="reassure">✔ <b>بدون بطاقة ائتمان</b> · موقعك جاهز خلال دقائق · إلغاء في أي وقت</p>
+      </div>
+      <div class="hero-card">
+        <div class="row"><span class="ic">📊</span><div><b>لوحة تحكم فورية</b><small>متابعة التحصيل والأداء لحظة بلحظة</small></div></div>
+        <div class="row"><span class="ic">📶</span><div><b>يعمل دون إنترنت</b><small>المحصّل يعمل ميدانيًا ويُزامن لاحقًا</small></div></div>
+        <div class="row"><span class="ic">👥</span><div><b>إدارة المستفيدين</b><small>مناطق ومحصّلون وقراءات منظّمة</small></div></div>
+        <div class="row"><span class="ic">🔒</span><div><b>عزل كامل للبيانات</b><small>موقع مستقل لكل شركة</small></div></div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block features %}
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>كل ما تحتاجه لإدارة التحصيل</h2>
+        <p>أدوات مصمّمة لواقع شركات الخدمات في اليمن — بسيطة، سريعة، وتعمل في الميدان.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic">🧾</span><h3>فوترة وقراءات</h3><p>سجّل قراءات العدّادات واحسب الفواتير تلقائيًا وفق شرائح الاستهلاك.</p></div>
+        <div class="card"><span class="ic">🗺️</span><h3>مناطق ومحصّلون</h3><p>وزّع المستفيدين على مناطق ومحصّلين وتابع إنجاز كلٍّ منهم.</p></div>
+        <div class="card"><span class="ic">📱</span><h3>تطبيق ميداني</h3><p>تطبيق جوال يعمل دون اتصال ويُزامن البيانات فور توفّر الشبكة.</p></div>
+        <div class="card"><span class="ic">📷</span><h3>توثيق بالصور</h3><p>التقاط صورة العدّاد مع كل قراءة لتوثيق دقيق وشفاف.</p></div>
+        <div class="card"><span class="ic">📈</span><h3>تقارير وتصدير</h3><p>تقارير تحصيل وأداء قابلة للتصدير لاتخاذ قرارات مبنية على بيانات.</p></div>
+        <div class="card"><span class="ic">⚙️</span><h3>تهيئة بنقرة</h3><p>موقعك الخاص يُنشأ ويُهيّأ آليًا خلال دقائق دون أي إعداد تقني.</p></div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block site_footer %}
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ر</span> راصد</div>
+      <p>منصّة راصد لإدارة تحصيل الخدمات — جميع الحقوق محفوظة.</p>
+    </div>
+  </footer>
+{% endblock %}

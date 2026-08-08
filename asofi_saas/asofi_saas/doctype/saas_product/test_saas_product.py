@@ -10,6 +10,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from asofi_saas.asofi_saas.doctype.saas_product import saas_product
+from asofi_saas.asofi_saas.public import storefront
 from asofi_saas.asofi_saas.doctype.saas_subscription_plan.saas_subscription_plan import (
     LEGACY_RASED_FIELDS,
 )
@@ -321,18 +322,8 @@ class TestStorefrontIsSingleProduct(FrappeTestCase):
         return plan
 
     def test_the_page_lists_only_its_own_products_plans(self):
-        import importlib.util
-        import os
-
-        path = os.path.join(
-            frappe.get_app_path("asofi_saas"), "www", "asofisaas", "index.py"
-        )
-        spec = importlib.util.spec_from_file_location("_storefront", path)
-        page = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(page)
-
         context = frappe._dict()
-        page.get_context(context)
+        storefront.product_context(context, "rased")
 
         codes = {p["plan_code"] for p in context.plans}
         self.assertNotIn(
@@ -340,7 +331,7 @@ class TestStorefrontIsSingleProduct(FrappeTestCase):
         )
         self.assertTrue(
             all(
-                frappe.db.get_value("SaaS Subscription Plan", c, "product") == page.PRODUCT
+                frappe.db.get_value("SaaS Subscription Plan", c, "product") == "rased"
                 for c in codes
             ),
             "الصفحة تعرض خططاً لا تخصّ منتجها",
@@ -373,18 +364,6 @@ class TestStorefrontIsSingleProduct(FrappeTestCase):
         self.assertEqual(tenant._sanitize_requested_plan(own[0]), own[0])
 
 
-def _storefront():
-    """The page controller, loaded by path — www/ is not an importable module."""
-    import importlib.util
-    import os
-
-    path = os.path.join(frappe.get_app_path("asofi_saas"), "www", "asofisaas", "index.py")
-    spec = importlib.util.spec_from_file_location("_storefront_mod", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 class TestPricingIsCatalogueDriven(FrappeTestCase):
     """Plan cards must speak their own product's language.
 
@@ -396,7 +375,7 @@ class TestPricingIsCatalogueDriven(FrappeTestCase):
 
     def setUp(self):
         super().setUp()
-        self.page = _storefront()
+        self.page = storefront
 
     def test_zero_still_means_unlimited(self):
         # Rased's premium tier states every limit as zero on purpose.
@@ -413,7 +392,7 @@ class TestPricingIsCatalogueDriven(FrappeTestCase):
         no value. Rendering it at all would print "unlimited storage" from a
         row that does not exist.
         """
-        cards = self.page._plan_cards("edupulse")
+        cards = self.page.plan_cards("edupulse")
         if not cards:
             self.skipTest("no active EduPulse plans on this site")
 
@@ -440,11 +419,11 @@ class TestPricingIsCatalogueDriven(FrappeTestCase):
 
     def test_each_product_gets_its_own_words(self):
         rased = {
-            row["label"] for card in self.page._plan_cards("rased") for row in card["limits"]
+            row["label"] for card in self.page.plan_cards("rased") for row in card["limits"]
         }
         edupulse = {
             row["label"]
-            for card in self.page._plan_cards("edupulse")
+            for card in self.page.plan_cards("edupulse")
             for row in card["limits"]
         }
 
@@ -458,7 +437,7 @@ class TestPricingIsCatalogueDriven(FrappeTestCase):
     def test_an_unadvertised_metric_stays_off_the_page(self):
         """Rased meters max_ai_tokens and has never sold it."""
         shown = {
-            row["label"] for card in self.page._plan_cards("rased") for row in card["limits"]
+            row["label"] for card in self.page.plan_cards("rased") for row in card["limits"]
         }
         label = frappe.db.get_value(
             "SaaS Product Metric",

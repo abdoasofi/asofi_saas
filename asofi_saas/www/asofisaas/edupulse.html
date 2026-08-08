@@ -1,0 +1,76 @@
+{% extends "templates/storefront/base.html" %}
+
+{# نبض التعلم — its own words. The structure below mirrors Rased's so the
+   shared shell renders both identically, but nothing here is Rased's copy
+   reworded: the product sells a different promise to a different buyer. #}
+
+{% block topbar %}
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ن</span> نبض التعلم</div>
+      {% if enable_public_trial %}
+      <a href="#trial" class="btn btn--primary">ابدأ التجربة المجانية</a>
+      {% else %}
+      <a href="#pricing" class="btn btn--primary">استعرض الخطط</a>
+      {% endif %}
+    </div>
+  </header>
+{% endblock %}
+
+{% block hero %}
+  <!-- Hero -->
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">منصّة سحابية للتعلّم القائم على الإتقان</span>
+        <h1>لا ينتقل الطالب إلى الدرس التالي قبل أن <span>يُتقن</span> الحالي</h1>
+        <p class="lead">
+          نبض التعلم يقيس إتقان كل مهارة على حدة. وإذا تعثّر الطالب، أسند إليه
+          شرحاً بديلاً من معلّم آخر ثم أعاد تقييمه — دون أن ينتظر أحد أن ينتبه أحد.
+        </p>
+        <div class="cta-row">
+          {% if enable_public_trial %}
+          <a href="#trial" class="btn btn--primary btn--lg">ابدأ تجربتك المجانية لمدة {{ trial_days }} يوماً</a>
+          {% endif %}
+          <a href="#pricing" class="btn btn--ghost btn--lg">استعرض الخطط</a>
+        </div>
+        <p class="reassure">✔ <b>موقع مستقل لكل مدرسة</b> · بيانات الطلاب معزولة · تطبيق للطالب وولي الأمر</p>
+      </div>
+      <div class="hero-card">
+        <div class="row"><span class="ic">🎯</span><div><b>الإتقان لا الحضور</b><small>القياس بالمهارة، لا بدرجة نهائية تخفي أين تعثّر</small></div></div>
+        <div class="row"><span class="ic">🔁</span><div><b>مسار علاجي تلقائي</b><small>شرح مختلف عند التعثّر، ثم إعادة تقييم</small></div></div>
+        <div class="row"><span class="ic">👨‍👩‍👦</span><div><b>ولي الأمر يعرف أولاً بأول</b><small>إشعار عند كل إتقان وكل تعثّر</small></div></div>
+        <div class="row"><span class="ic">📊</span><div><b>أثر مقيس لا انطباع</b><small>قبل وبعد لكل مهارة، بالأرقام</small></div></div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block features %}
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>كيف يصل الطالب إلى الإتقان</h2>
+        <p>حلقة واحدة تعمل من تلقاء نفسها: يشاهد، يُختبر، وإن تعثّر تلقّى شرحاً آخر.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic">🎬</span><h3>بوابة مشاهدة</h3><p>لا يُفتح الاختبار قبل مشاهدة النسبة المطلوبة من الشرح — والمشاهدة المتّصلة وحدها تُحتسب.</p></div>
+        <div class="card"><span class="ic">🧭</span><h3>مسار متسلسل</h3><p>الدرس التالي يُفتح بالإتقان لا بمرور التاريخ، فلا يتراكم النقص بصمت.</p></div>
+        <div class="card"><span class="ic">🔁</span><h3>المسار العلاجي</h3><p>من يخفق يتلقّى شرحاً بديلاً من معلّم آخر ثم إعادة تقييم — تلقائياً ودون وساطة.</p></div>
+        <div class="card"><span class="ic">🩺</span><h3>قائمة تدخّل للمعلّم</h3><p>مرتّبة بحسب من يحتاجك فعلاً، لا بحسب من سجّل أدنى درجة.</p></div>
+        <div class="card"><span class="ic">📈</span><h3>أثر المنصّة على الإتقان</h3><p>قبل/بعد لكل مهارة، ونسبة من تعافوا بعد المسار العلاجي — أرقام تُعرض على الإدارة.</p></div>
+        <div class="card"><span class="ic">📱</span><h3>تطبيق للطالب وولي الأمر</h3><p>الدروس والاختبارات ومتابعة الأبناء في تطبيق واحد.</p></div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block site_footer %}
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="brand"><span class="dot">ن</span> نبض التعلم</div>
+      <p>نبض التعلم — أحد أنظمة أسوفي. جميع الحقوق محفوظة.</p>
+    </div>
+  </footer>
+{% endblock %}
