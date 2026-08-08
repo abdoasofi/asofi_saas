@@ -284,3 +284,90 @@ class TestVocabularyIsolation(FrappeTestCase):
 
         for field in LEGACY_RASED_FIELDS:
             self.assertIn(field, definition, f"{field} vanished from the Rased wire")
+
+
+class TestStorefrontIsSingleProduct(FrappeTestCase):
+    """The public page sells one product, and must advertise only its plans.
+
+    It went live listing every active plan on the site. An EduPulse plan
+    appeared between Rased's tiers, priced in the same currency and rendered
+    with Rased's columns — and because the template shows a zero limit as
+    "غير محدود", a schools plan whose water-utility metrics are all zero was
+    advertised as an unlimited water-utility plan. Public trial signup was on
+    at the time.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.product = _product()
+        self.plan = self._plan()
+
+    def _plan(self):
+        name = f"{TEST_PRODUCT}_storefront"
+        if frappe.db.exists("SaaS Subscription Plan", name):
+            frappe.delete_doc("SaaS Subscription Plan", name, force=True)
+
+        plan = frappe.new_doc("SaaS Subscription Plan")
+        plan.update(
+            {
+                "plan_code": name,
+                "plan_name": "خطة منتج آخر",
+                "product": TEST_PRODUCT,
+                "is_active": 1,
+                "monthly_price": 500,
+            }
+        )
+        plan.insert(ignore_permissions=True)
+        return plan
+
+    def test_the_page_lists_only_its_own_products_plans(self):
+        import importlib.util
+        import os
+
+        path = os.path.join(
+            frappe.get_app_path("asofi_saas"), "www", "asofisaas", "index.py"
+        )
+        spec = importlib.util.spec_from_file_location("_storefront", path)
+        page = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(page)
+
+        context = frappe._dict()
+        page.get_context(context)
+
+        codes = {p["plan_code"] for p in context.plans}
+        self.assertNotIn(
+            self.plan.name, codes, "خطة منتج آخر ظهرت على صفحة راصد العامة"
+        )
+        self.assertTrue(
+            all(
+                frappe.db.get_value("SaaS Subscription Plan", c, "product") == page.PRODUCT
+                for c in codes
+            ),
+            "الصفحة تعرض خططاً لا تخصّ منتجها",
+        )
+
+    def test_another_products_plan_cannot_be_posted_to_the_trial(self):
+        """Hiding it from the page is not the same as refusing it.
+
+        The plan code arrives from an anonymous form post, so the endpoint has
+        to check for itself — otherwise the lead records a plan the Rased site
+        this flow provisions can never deliver.
+        """
+        from asofi_saas.asofi_saas.public import tenant
+
+        self.assertIsNone(tenant._sanitize_requested_plan(self.plan.name))
+
+    def test_its_own_active_plans_still_pass(self):
+        """The filter must not be so tight that it drops real sales."""
+        from asofi_saas.asofi_saas.public import tenant
+
+        own = frappe.get_all(
+            "SaaS Subscription Plan",
+            filters={"product": tenant.TRIAL_PRODUCT, "is_active": 1},
+            pluck="name",
+            limit=1,
+        )
+        if not own:
+            self.skipTest("no active plans for the trial product on this site")
+
+        self.assertEqual(tenant._sanitize_requested_plan(own[0]), own[0])
