@@ -341,27 +341,29 @@ class TestStorefrontIsSingleProduct(FrappeTestCase):
         """Hiding it from the page is not the same as refusing it.
 
         The plan code arrives from an anonymous form post, so the endpoint has
-        to check for itself — otherwise the lead records a plan the Rased site
-        this flow provisions can never deliver.
+        to check for itself — otherwise the lead records a plan the site this
+        signup provisions can never deliver.
         """
         from asofi_saas.asofi_saas.public import tenant
 
-        self.assertIsNone(tenant._sanitize_requested_plan(self.plan.name))
+        rased = frappe.get_cached_doc("SaaS Product", "rased")
+        self.assertIsNone(tenant._sanitize_requested_plan(self.plan.name, rased))
 
     def test_its_own_active_plans_still_pass(self):
         """The filter must not be so tight that it drops real sales."""
         from asofi_saas.asofi_saas.public import tenant
 
+        rased = frappe.get_cached_doc("SaaS Product", "rased")
         own = frappe.get_all(
             "SaaS Subscription Plan",
-            filters={"product": tenant.TRIAL_PRODUCT, "is_active": 1},
+            filters={"product": rased.name, "is_active": 1},
             pluck="name",
             limit=1,
         )
         if not own:
-            self.skipTest("no active plans for the trial product on this site")
+            self.skipTest("no active plans for راصد on this site")
 
-        self.assertEqual(tenant._sanitize_requested_plan(own[0]), own[0])
+        self.assertEqual(tenant._sanitize_requested_plan(own[0], rased), own[0])
 
 
 class TestPricingIsCatalogueDriven(FrappeTestCase):

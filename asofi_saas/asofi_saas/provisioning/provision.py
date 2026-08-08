@@ -151,6 +151,7 @@ def _run(cmd, cwd, operation_id, step, user):
 # ---------------------------------------------------------------------------
 def _create_company_and_enqueue(
     *,
+    product,
     company_name,
     site_name,
     manager_email,
@@ -178,23 +179,45 @@ def _create_company_and_enqueue(
     their own access rules, then share this creation/enqueue logic so the two
     paths never drift. Returns ``{operation_id, company}``.
     """
-    if not (company_name and site_name and manager_email and manager_password and subscription_plan):
+    if not (
+        product and company_name and site_name and manager_email
+        and manager_password and subscription_plan
+    ):
         frappe.throw(
             _(
-                "company_name, site_name, manager_email, manager_password and "
-                "subscription_plan are required."
+                "product, company_name, site_name, manager_email, manager_password "
+                "and subscription_plan are required."
             )
         )
 
-    settings = _settings()
-    if not settings.bench_path or not settings.get_password("db_root_password"):
+    # The bench belongs to the product — Rased's is v15 and EduPulse's is v16.
+    # Resolving the driver here also refuses a product with no bench path,
+    # before a Managed Company is written that nothing can ever provision.
+    drivers.for_product(product)
+
+    # The database server, unlike the bench, really is one for the platform.
+    if not _settings().get_password("db_root_password"):
         frappe.throw(
-            _("Provisioning is not configured: set Bench Path and MariaDB Root Password in SaaS Settings.")
+            _("Provisioning is not configured: set MariaDB Root Password in SaaS Settings.")
         )
     if not frappe.db.exists("SaaS Subscription Plan", subscription_plan):
         frappe.throw(_("Unknown plan: {0}").format(subscription_plan))
+
+    # A plan carries its product's vocabulary — `max_students` means nothing to
+    # a water utility. Granting one product's plan to another product's site
+    # pushes limits the receiving site cannot even name.
+    plan_product = frappe.db.get_value("SaaS Subscription Plan", subscription_plan, "product")
+    if plan_product and plan_product != product:
+        frappe.throw(
+            _("Plan {0} belongs to product {1}, not {2}.").format(
+                subscription_plan, plan_product, product
+            )
+        )
+
     if frappe.db.exists("Managed Company", site_name):
         frappe.throw(_("A Managed Company for site {0} already exists.").format(site_name))
+
+    settings = _settings()
 
     site_url = (site_url or ("https://" + site_name)).rstrip("/")
     secret = frappe.generate_hash(length=32)
@@ -207,6 +230,7 @@ def _create_company_and_enqueue(
     doc = frappe.get_doc(
         {
             "doctype": "Managed Company",
+            "product": product,
             "company_name": company_name,
             "site_name": site_name,
             "site_url": site_url,
@@ -258,6 +282,7 @@ def enqueue_provision(**kwargs):
     """
     frappe.only_for("System Manager")
     return _create_company_and_enqueue(
+        product=kwargs.get("product"),
         company_name=kwargs.get("company_name"),
         site_name=kwargs.get("site_name"),
         manager_email=kwargs.get("manager_email"),
@@ -299,10 +324,13 @@ def provision_existing(
     if not (manager_email and manager_password):
         frappe.throw(_("Manager email and password are required."))
 
+    # Same two checks as a fresh provision: the product's bench, the platform's
+    # database server.
+    drivers.for_product(doc.product)
     settings = _settings()
-    if not settings.bench_path or not settings.get_password("db_root_password"):
+    if not settings.get_password("db_root_password"):
         frappe.throw(
-            _("Provisioning is not configured: set Bench Path and MariaDB Root Password in SaaS Settings.")
+            _("Provisioning is not configured: set MariaDB Root Password in SaaS Settings.")
         )
 
     # A record registered by hand may not carry a secret yet — mint one so the

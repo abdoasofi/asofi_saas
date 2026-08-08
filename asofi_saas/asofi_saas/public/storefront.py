@@ -50,6 +50,22 @@ def _advertised(product):
     ]
 
 
+def domain_suffix(product):
+    """The site-name suffix (e.g. ``.rased.com``), always leading-dot normalized.
+
+    Lives here rather than in `tenant`, which is the module that consumes it,
+    so the page and the endpoint cannot disagree about what a site will be
+    called. They did: the field holds whatever the operator typed, and one
+    product's was saved with a leading dot and another's without — so the form
+    offered `andalusedupulse.local` while the endpoint would have created
+    `andalus.edupulse.local`.
+    """
+    suffix = (product.default_site_domain or "").strip().lower()
+    if suffix and not suffix.startswith("."):
+        suffix = "." + suffix
+    return suffix
+
+
 def _limit_text(value, unit=None):
     """Zero means unlimited. A metric the plan never mentions is not shown.
 
@@ -135,7 +151,11 @@ def product_context(context, product_code):
         cint(product.enable_public_trial) and product.trial_plan
     )
     context.trial_days = cint(product.trial_days) or 14
-    context.domain_suffix = (product.default_site_domain or "").strip()
+    # Which plan card is the free one. Read from the product, because the
+    # template used to look for the literal code "trial" — Rased's plan — so on
+    # any other product the free tier rendered as just another paid tier.
+    context.trial_plan = (product.trial_plan or "").strip()
+    context.domain_suffix = domain_suffix(product)
     context.mobile_app_url = (product.mobile_app_url or "").strip()
 
     # Where a paid-plan enquiry goes. Sales contact stays platform-wide: it is

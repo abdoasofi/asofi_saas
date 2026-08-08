@@ -25,6 +25,31 @@ class SaaSProduct(Document):
 		self.product_code = (self.product_code or "").strip()
 		self.normalise_paths()
 		self.validate_metrics()
+		self.validate_trial()
+
+	def validate_trial(self):
+		"""A public trial may only grant this product's own plan.
+
+		`trial_plan` is an unfiltered Link, so the picker happily offers every
+		product's plans. Granting the wrong one provisions a site entitled to
+		limits it cannot even name — and on a guest-facing funnel nobody is
+		watching when it happens.
+
+		The switch being on with no plan yet is NOT an error: it is the state an
+		operator passes through while setting the product up. The storefront
+		reads it as "no trial to advertise" and says so, and the signup endpoint
+		refuses, so nothing is offered that cannot be honoured.
+		"""
+		if not self.trial_plan:
+			return
+
+		owner = frappe.db.get_value("SaaS Subscription Plan", self.trial_plan, "product")
+		if owner and owner != self.name:
+			frappe.throw(
+				_("الخطة التجريبية {0} تعود للمنتج {1}، لا لهذا المنتج.").format(
+					self.trial_plan, owner
+				)
+			)
 
 	def normalise_paths(self):
 		for field in ("apply_path", "usage_path"):
