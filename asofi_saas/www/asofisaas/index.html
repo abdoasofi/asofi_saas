@@ -14,11 +14,18 @@
 <style>
   .hero--platform .wrap { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .hero--platform .lead { max-width: 56ch; }
-  .hero--platform .cta-row { justify-content: center; }
-  .kicker { margin-top: 22px; color: var(--muted); font-size: .78rem;
-            letter-spacing: .22em; font-weight: 700; }
+  .hero--platform .cta-row { justify-content: center; margin-top: 30px; }
+  .kicker { margin-top: 30px; color: var(--muted); font-size: .74rem;
+            letter-spacing: .24em; font-weight: 700; }
+  /* White for the products, tinted for the shared-basis band below it —
+     without the alternation the page reads as one long grey slab. */
+  .products-band { background: #fff; }
+  .why { background: var(--bg); }
 
-  .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+  /* Capped tracks, centred: with two systems a stretch-to-fit grid gives
+     two enormous cards; with five it would still read as a row. */
+  .products { display: grid; gap: 24px; justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 360px)); }
   .product-card {
     display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
     padding: 36px 28px 30px; border: 1px solid var(--line); border-radius: 20px;
@@ -33,21 +40,13 @@
   }
   .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #d6e2ee; }
   .product-card:hover::before { opacity: 1; }
-  .product-mark { width: 148px; height: 148px; object-fit: contain; margin-bottom: 2px; }
-  /* The lockup already carries the product name. Keeping a visible <h3>
-     under it prints the name twice; keeping it in the accessibility tree
-     keeps the card readable to a screen reader and to search. */
-  .product-card h3 { position: absolute; width: 1px; height: 1px; overflow: hidden;
-                     clip-path: inset(50%); white-space: nowrap; }
+  .product-mark { width: 96px; height: 96px; object-fit: contain; }
   .product-card h3 { font-size: 1.4rem; margin: 0; }
   .product-card p { color: var(--muted); flex: 1; margin: 0; }
   .product-card .go { margin-top: 10px; }
   .soon { font-size: .78rem; color: var(--muted); border: 1px dashed var(--line);
           border-radius: 999px; padding: 4px 12px; }
-  @media (max-width: 560px) {
-    .products { grid-template-columns: 1fr; }
-    .product-mark { width: 104px; height: 104px; }
-  }
+  @media (max-width: 560px) { .product-mark { width: 84px; height: 84px; } }
 </style>
 {% endblock %}
 
@@ -80,7 +79,7 @@
     </div>
   </div>
 
-  <section class="features" id="products">
+  <section class="products-band" id="products">
     <div class="wrap">
       <div class="section-head">
         <h2>الأنظمة</h2>
@@ -94,7 +93,7 @@
              from the app on their phone, and it carries the identity far
              better than a name in the platform's typeface. #}
           <img class="product-mark"
-               src="/assets/asofi_saas/images/{{ p.product_code }}.png"
+               src="/assets/asofi_saas/images/icon/{{ p.product_code }}-192.png"
                alt="{{ p.product_name }}" onerror="this.remove()">
           <h3>{{ p.product_name }}</h3>
           <p>{{ p.description or "" }}</p>
@@ -111,6 +110,26 @@
         {% else %}
         <p class="lead">لا توجد أنظمة متاحة حالياً.</p>
         {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# Four claims that hold for every system on the platform and are true of
+     what is actually built — a tenant really does get its own Frappe site,
+     provisioning really is a pipeline, both systems really do ship an app.
+     Nothing here is aspirational; a claim the platform cannot keep would be
+     found out in the first week of a trial. #}
+  <section class="why">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>ما تشترك فيه كل أنظمة أسوفي</h2>
+        <p>يختلف النظام باختلاف القطاع، ويبقى الأساس واحداً.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic">🔒</span><h3>موقع مستقل لكل جهة</h3><p>لكل مشترك موقعه وقاعدة بياناته وحده — لا جدول مشترك ولا بيانات تجاور بيانات غيره.</p></div>
+        <div class="card"><span class="ic">⚙️</span><h3>تهيئة آلية</h3><p>الموقع يُنشأ ويُهيّأ ويُسلَّم جاهزاً دون إعداد تقني من طرفك.</p></div>
+        <div class="card"><span class="ic">📱</span><h3>تطبيق جوال لكل نظام</h3><p>الميدان لا يُدار من مكتب — لكل نظام تطبيقه على أندرويد.</p></div>
+        <div class="card"><span class="ic">🌐</span><h3>عربيّ بالكامل</h3><p>الواجهة والتقارير والرسائل بالعربية ومن اليمين إلى اليسار، لا ترجمة فوق قالب أجنبي.</p></div>
       </div>
     </div>
   </section>
