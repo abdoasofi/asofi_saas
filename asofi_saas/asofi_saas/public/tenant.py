@@ -26,6 +26,15 @@ from asofi_saas.asofi_saas.provisioning import provision as prov
 
 logger = frappe.logger("asofi_saas.public_tenant", allow_site=True)
 
+#: The product this self-service flow provisions.
+#:
+#: Every setting it reads — bench path, domain suffix, apps, trial plan — still
+#: comes from SaaS Settings, which holds Rased's values. So this flow creates a
+#: Rased site and nothing else, whatever the visitor believed they signed up
+#: for. Naming that here keeps the limit visible instead of implied, and marks
+#: the seam where a `product` argument belongs once the flow is generalised.
+TRIAL_PRODUCT = "rased"
+
 # Subdomains we never hand out (infrastructure / brand / obvious confusables).
 RESERVED_SUBDOMAINS = {
     "www", "api", "app", "admin", "administrator", "saas", "asofi", "asofisaas",
@@ -152,12 +161,22 @@ def _sanitize_requested_plan(plan_code):
     stored: the value arrives from an anonymous form post and ends up in a Link
     field, so an unchecked string would either break the record or park
     arbitrary text on it.
+
+    The product check is not a duplicate of the storefront's filter. Hiding a
+    plan from the page does not stop it being posted here, and this flow
+    provisions a Rased site — a lead carrying another product's plan describes
+    something the tenant it creates can never deliver.
     """
     plan_code = (plan_code or "").strip()
     if not plan_code:
         return None
-    if not frappe.db.exists("SaaS Subscription Plan", {"name": plan_code, "is_active": 1}):
+
+    if not frappe.db.exists(
+        "SaaS Subscription Plan",
+        {"name": plan_code, "is_active": 1, "product": TRIAL_PRODUCT},
+    ):
         return None
+
     return plan_code
 
 

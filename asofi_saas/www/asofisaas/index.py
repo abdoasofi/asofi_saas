@@ -15,6 +15,17 @@ CHECK_METHOD = "asofi_saas.asofi_saas.public.tenant.check_subdomain"
 CREATE_METHOD = "asofi_saas.asofi_saas.public.tenant.create_trial_tenant"
 PROGRESS_METHOD = "asofi_saas.asofi_saas.public.tenant.get_trial_progress"
 
+#: The product this page sells.
+#:
+#: Every word on it is Rased's — the hero, the module labels below, the plan
+#: columns the template reads. It is not a generic storefront, and until it is
+#: it must not list another product's plans: `edupulse_standard` was appearing
+#: between Rased's tiers, and because the template renders a zero limit as
+#: "غير محدود", a 500-riyal schools plan was advertised as an unlimited water
+#: utility plan. Naming the product here is also the seam a real multi-product
+#: storefront will hang on.
+PRODUCT = "rased"
+
 #: The modules a buyer is actually choosing between, in selling order.
 #: Kept here rather than in the template so the field list and the Arabic
 #: labels stay in one place — a gate added to a plan without a label here is
@@ -54,7 +65,7 @@ def get_context(context):
     # get_all bypasses user permissions, so Guests still see the public catalogue.
     plans = frappe.get_all(
         "SaaS Subscription Plan",
-        filters={"is_active": 1},
+        filters={"is_active": 1, "product": PRODUCT},
         fields=[
             "plan_code",
             "plan_name",
