@@ -356,9 +356,13 @@
         if (p.final_status === "SUCCESS") { onSuccess(); } else { onFailure(); }
       }
     }).catch(function () {
-      // Transient (server busy / worker still starting): tolerate a few misses.
+      // Losing contact with the progress buffer is NOT the provision failing.
+      // The worker runs on the server and carries on regardless — a school
+      // once watched this page say "لم يكتمل إنشاء الموقع" while its site was
+      // being built successfully, because the web server restarted mid-poll.
+      // Say what is actually known: we stopped hearing, not that it broke.
       failCount++;
-      if (failCount > 30) { clearInterval(pollTimer); onFailure(); }
+      if (failCount > 60) { clearInterval(pollTimer); onUnreachable(); }
     });
   }
 
@@ -394,6 +398,19 @@
         "موقعك التجريبي جاهز. سجّل الدخول عبر <b>" + app + "</b> بالبيانات التالية — وسيصلك رابط التطبيق على بريدك:";
     }
     $("gotoSiteBtn").href = loginUrl();
+    $("resultView").classList.add("show");
+  }
+
+  // Contact lost. The site may well be finishing right now, so the one thing
+  // this must not do is tell the visitor it failed.
+  function onUnreachable() {
+    $("progressStep").textContent = "انقطعت متابعة الحالة";
+    $("resultIcon").textContent = "⏳";
+    $("resultTitle").textContent = "ما زال التجهيز جارياً على الأرجح";
+    $("resultMsg").innerHTML =
+      "انقطع اتصالنا بصفحة المتابعة، وهذا لا يعني توقّف الإنشاء — فهو يجري على الخادم. " +
+      "سيصلك بريد عند اكتمال موقعك، أو حدّث هذه الصفحة بعد قليل.";
+    $("gotoSiteBtn").style.display = "none";
     $("resultView").classList.add("show");
   }
 
