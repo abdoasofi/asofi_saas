@@ -1,0 +1,27 @@
+{# Icons and link-preview metadata, shared by the platform page and every
+   product storefront so the two shapes cannot drift apart.
+
+   `favicon` is set in Python because Frappe's base template reads it from the
+   context; everything below has no context hook and has to be emitted here.
+
+   Each page carries its OWN product's icons. A school opening نبض التعلم and
+   pinning it to a home screen should get that mark, not the platform's — the
+   icon is how they find the tab again. #}
+
+<link rel="apple-touch-icon" sizes="180x180"
+      href="/assets/asofi_saas/images/icon/{{ brand_icon }}-180.png">
+<link rel="icon" type="image/png" sizes="32x32"
+      href="/assets/asofi_saas/images/icon/{{ brand_icon }}-32.png">
+<link rel="icon" type="image/png" sizes="192x192"
+      href="/assets/asofi_saas/images/icon/{{ brand_icon }}-192.png">
+
+{# A shared link is often the first thing anyone sees of the product — in a
+   WhatsApp forward long before the page itself loads. #}
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ title }}">
+{% if og_description %}<meta property="og:description" content="{{ og_description }}">{% endif %}
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+{% if og_description %}<meta name="description" content="{{ og_description }}">{% endif %}

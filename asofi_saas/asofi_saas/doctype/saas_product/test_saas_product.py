@@ -10,6 +10,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from asofi_saas.asofi_saas.doctype.saas_product import saas_product
+from asofi_saas.asofi_saas.public import storefront
 from asofi_saas.asofi_saas.doctype.saas_subscription_plan.saas_subscription_plan import (
     LEGACY_RASED_FIELDS,
 )
@@ -284,3 +285,166 @@ class TestVocabularyIsolation(FrappeTestCase):
 
         for field in LEGACY_RASED_FIELDS:
             self.assertIn(field, definition, f"{field} vanished from the Rased wire")
+
+
+class TestStorefrontIsSingleProduct(FrappeTestCase):
+    """The public page sells one product, and must advertise only its plans.
+
+    It went live listing every active plan on the site. An EduPulse plan
+    appeared between Rased's tiers, priced in the same currency and rendered
+    with Rased's columns — and because the template shows a zero limit as
+    "غير محدود", a schools plan whose water-utility metrics are all zero was
+    advertised as an unlimited water-utility plan. Public trial signup was on
+    at the time.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.product = _product()
+        self.plan = self._plan()
+
+    def _plan(self):
+        name = f"{TEST_PRODUCT}_storefront"
+        if frappe.db.exists("SaaS Subscription Plan", name):
+            frappe.delete_doc("SaaS Subscription Plan", name, force=True)
+
+        plan = frappe.new_doc("SaaS Subscription Plan")
+        plan.update(
+            {
+                "plan_code": name,
+                "plan_name": "خطة منتج آخر",
+                "product": TEST_PRODUCT,
+                "is_active": 1,
+                "monthly_price": 500,
+            }
+        )
+        plan.insert(ignore_permissions=True)
+        return plan
+
+    def test_the_page_lists_only_its_own_products_plans(self):
+        context = frappe._dict()
+        storefront.product_context(context, "rased")
+
+        codes = {p["plan_code"] for p in context.plans}
+        self.assertNotIn(
+            self.plan.name, codes, "خطة منتج آخر ظهرت على صفحة راصد العامة"
+        )
+        self.assertTrue(
+            all(
+                frappe.db.get_value("SaaS Subscription Plan", c, "product") == "rased"
+                for c in codes
+            ),
+            "الصفحة تعرض خططاً لا تخصّ منتجها",
+        )
+
+    def test_another_products_plan_cannot_be_posted_to_the_trial(self):
+        """Hiding it from the page is not the same as refusing it.
+
+        The plan code arrives from an anonymous form post, so the endpoint has
+        to check for itself — otherwise the lead records a plan the site this
+        signup provisions can never deliver.
+        """
+        from asofi_saas.asofi_saas.public import tenant
+
+        rased = frappe.get_cached_doc("SaaS Product", "rased")
+        self.assertIsNone(tenant._sanitize_requested_plan(self.plan.name, rased))
+
+    def test_its_own_active_plans_still_pass(self):
+        """The filter must not be so tight that it drops real sales."""
+        from asofi_saas.asofi_saas.public import tenant
+
+        rased = frappe.get_cached_doc("SaaS Product", "rased")
+        own = frappe.get_all(
+            "SaaS Subscription Plan",
+            filters={"product": rased.name, "is_active": 1},
+            pluck="name",
+            limit=1,
+        )
+        if not own:
+            self.skipTest("no active plans for راصد on this site")
+
+        self.assertEqual(tenant._sanitize_requested_plan(own[0], rased), own[0])
+
+
+class TestPricingIsCatalogueDriven(FrappeTestCase):
+    """Plan cards must speak their own product's language.
+
+    The page used to select Rased's columns by name, so it could describe one
+    product and no other. The damage was not only cosmetic: a limit the plan
+    never declared came back as zero, and zero means "unlimited" here — so a
+    schools plan with no collector limit advertised unlimited collectors.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.page = storefront
+
+    def test_zero_still_means_unlimited(self):
+        # Rased's premium tier states every limit as zero on purpose.
+        self.assertEqual(self.page._limit_text(0), self.page.UNLIMITED)
+
+    def test_a_real_limit_is_formatted_with_its_unit(self):
+        self.assertEqual(self.page._limit_text(5000), "5,000")
+        self.assertEqual(self.page._limit_text(20, "غيغابايت"), "20 غيغابايت")
+
+    def test_a_metric_the_plan_never_declares_is_omitted(self):
+        """The whole bug in one assertion.
+
+        `max_storage_gb` is advertised for EduPulse but its standard plan sets
+        no value. Rendering it at all would print "unlimited storage" from a
+        row that does not exist.
+        """
+        cards = self.page.plan_cards("edupulse")
+        if not cards:
+            self.skipTest("no active EduPulse plans on this site")
+
+        declared = {
+            r.metric_key
+            for r in frappe.get_all(
+                "SaaS Plan Limit",
+                filters={"parent": cards[0]["name"]},
+                fields=["metric_key"],
+            )
+        }
+        labels = {
+            m.public_label_ar or m.label_ar
+            for m in frappe.get_cached_doc("SaaS Product", "edupulse").metrics
+            if m.metric_key in declared
+        }
+
+        shown = {row["label"] for row in cards[0]["limits"]}
+        self.assertEqual(
+            shown,
+            labels,
+            "البطاقة تعرض حدوداً لم تُصرّح بها الخطة، أو تُسقط حدوداً صرّحت بها",
+        )
+
+    def test_each_product_gets_its_own_words(self):
+        rased = {
+            row["label"] for card in self.page.plan_cards("rased") for row in card["limits"]
+        }
+        edupulse = {
+            row["label"]
+            for card in self.page.plan_cards("edupulse")
+            for row in card["limits"]
+        }
+
+        if not edupulse:
+            self.skipTest("no active EduPulse plans on this site")
+
+        self.assertEqual(
+            rased & edupulse, set(), "المنتجان يتشاركان مفردات على صفحة الأسعار"
+        )
+
+    def test_an_unadvertised_metric_stays_off_the_page(self):
+        """Rased meters max_ai_tokens and has never sold it."""
+        shown = {
+            row["label"] for card in self.page.plan_cards("rased") for row in card["limits"]
+        }
+        label = frappe.db.get_value(
+            "SaaS Product Metric",
+            {"parent": "rased", "metric_key": "max_ai_tokens"},
+            "label_ar",
+        )
+        if label:
+            self.assertNotIn(label, shown)
