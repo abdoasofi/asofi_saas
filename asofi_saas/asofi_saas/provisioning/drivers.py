@@ -60,21 +60,38 @@ class BenchDriver:
     def finalize_setup(self, site):
         """Hand over a site whose setup wizard is already behind it.
 
-        Two writes, not one — and the second is the one that was missing.
-        `setup_complete` is what most code asks, but the Desk lands on
-        whatever the `desktop:home_page` default says, and `bench new-site`
-        writes "setup-wizard" there at install (frappe/utils/install.py).
-        Only finishing the wizard moves it, so a site marked complete still
-        sent every user straight to the wizard — and a manager who is not a
-        System Manager is met there by "ليس لديك الأذونات الكافية": the first
-        screen after signing up.
+        A manager arriving at the wizard is met by "ليس لديك الأذونات الكافية"
+        — they are a System User holding the product's manager role and not
+        System Manager, so they may not run it, and there is no way past it.
+        That is the first screen after signing up.
 
-        Frappe's own reset patch treats these two values as a pair; so do we.
+        Writing `System Settings.setup_complete = 1` does not prevent it.
+        Frappe **derives** that answer rather than reading the field:
+        `frappe.is_setup_complete()` asks whether every row for frappe and
+        erpnext in the `Installed Application` child table is flagged, and the
+        System Settings field is written *from* that, not consulted. So the
+        boot kept reporting `setup_complete: 0` next to a field saying 1.
+
+        `enable_setup_wizard_complete` is how the wizard itself records
+        completion, and it exists on both v15 and v16 — so this stays true for
+        whichever Frappe a product's bench runs.
+
+        The last write is separate and equally required: the Desk lands on
+        whatever the `desktop:home_page` default says, and `bench new-site`
+        puts "setup-wizard" there (frappe/utils/install.py). Nothing but
+        finishing the wizard moves it.
         """
         def execute(method, kwargs):
             return [self.executable, "--site", site, "execute", method, "--kwargs", kwargs]
 
+        wizard = "frappe.desk.page.setup_wizard.setup_wizard.enable_setup_wizard_complete"
+
         return [
+            # The two apps `is_setup_complete()` actually inspects. A product
+            # whose bench has no erpnext simply matches no row.
+            execute(wizard, "{'app_name': 'frappe'}"),
+            execute(wizard, "{'app_name': 'erpnext'}"),
+            # Mirrored onto the field for code that still reads it directly.
             execute(
                 "frappe.db.set_single_value",
                 "{'doctype': 'System Settings', 'fieldname': 'setup_complete', 'value': 1}",
