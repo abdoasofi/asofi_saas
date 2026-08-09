@@ -122,10 +122,26 @@ def _publish(operation_id, step, status, message, user=None, final_status=None):
         logger.exception("failed to publish provision progress")
 
 
+#: Every provisioning command runs with no stdin. A background worker has no
+#: one to answer a question, but it usually *inherits a terminal* — the one
+#: `bench start` was launched from — and `sys.stdin.isatty()` is then True.
+#:
+#: `bench new-site` uses exactly that check: when site creation fails it asks
+#: "do you want to rollback the site?" and blocks on the answer. Nobody is
+#: reading that terminal, so the job hung forever, the progress bar sat at 30%,
+#: and the real traceback stayed in a pipe nobody drained. A visitor watched an
+#: unmoving bar with no error and no failure.
+#:
+#: With stdin closed the prompt is skipped, the command exits non-zero, and the
+#: failure surfaces on the page within seconds.
+_NO_STDIN = subprocess.DEVNULL
+
+
 def _run_streaming(cmd, cwd, operation_id, step, user):
     _publish(operation_id, step, "info", "$ " + " ".join(_redact(cmd)), user)
     proc = subprocess.Popen(
-        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+        cmd, cwd=cwd, stdin=_NO_STDIN,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
     )
     for line in iter(proc.stdout.readline, ""):
         line = line.rstrip("\n")
@@ -139,7 +155,7 @@ def _run_streaming(cmd, cwd, operation_id, step, user):
 
 def _run(cmd, cwd, operation_id, step, user):
     _publish(operation_id, step, "info", "$ " + " ".join(_redact(cmd)), user)
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    result = subprocess.run(cmd, cwd=cwd, stdin=_NO_STDIN, capture_output=True, text=True)
     if result.returncode != 0:
         detail = (result.stderr.strip() or result.stdout.strip() or "")[:300]
         raise ProvisionError(f"{step} failed: {detail}")
