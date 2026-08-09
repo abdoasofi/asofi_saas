@@ -1,82 +1,45 @@
-"""Context for the public Rased / Asofi SaaS marketing + trial-onboarding page.
+"""منصّة أسوفي — the platform page.
 
-Runs as the website visitor (Guest). Reads are done with permission-free helpers
-(``frappe.get_all`` / ``frappe.db.get_single_value``) so anonymous visitors can see
-the plans and the trial configuration without any Desk role.
+This route used to be Rased's landing page. Rased now lives at
+/asofisaas/rased with its copy unchanged, and this page introduces the
+platform and hands the visitor to the product they came for.
+
+The product list is the catalogue's, not a hardcoded one: a product added in
+the Desk appears here, an inactive one does not. That is the whole reason the
+catalogue exists — the previous version of this page could not describe a
+second product at all, and when one appeared its plan was advertised through
+Rased's vocabulary.
 """
 
 import frappe
 
-from asofi_saas.asofi_saas.public.tenant import _domain_suffix
+from asofi_saas.asofi_saas.public.storefront import products
 
-# The public method paths the page calls via frappe.call (kept here so the
-# template and the backend never drift out of sync).
-CHECK_METHOD = "asofi_saas.asofi_saas.public.tenant.check_subdomain"
-CREATE_METHOD = "asofi_saas.asofi_saas.public.tenant.create_trial_tenant"
-PROGRESS_METHOD = "asofi_saas.asofi_saas.public.tenant.get_trial_progress"
-
-#: The modules a buyer is actually choosing between, in selling order.
-#: Kept here rather than in the template so the field list and the Arabic
-#: labels stay in one place — a gate added to a plan without a label here is
-#: simply not advertised, never rendered as a raw fieldname.
-PUBLIC_MODULES = (
-    ("allow_branches", "الفروع المتعددة"),
-    ("allow_website", "الموقع الإلكتروني ونماذج الطلبات"),
-    ("allow_hr", "الموارد البشرية والرواتب"),
-    ("allow_incidents", "البلاغات والمخالفات"),
-    ("allow_tracking", "التتبّع المباشر للمحصلين"),
-    ("allow_messaging", "المراسلات الداخلية"),
-    ("allow_ai_analytics", "تحليلات الذكاء والتنبؤ"),
-    ("allow_meter_ocr", "قراءة العدّاد بالصورة"),
-)
+# Taken from the mark rather than written fresh: the wordmark already carries
+# a line, and a page that says something different from the logo above it
+# reads as two companies.
+PLATFORM_NAME = "أسوفي"
+PLATFORM_TAGLINE = "نُقدّمُ أنظمة.. نَصنعُ التَحَوّل"
+PLATFORM_KICKER = "SYSTEMS · TECHNOLOGY · TRANSFORMATION"
 
 
 def get_context(context):
     context.no_cache = 1
-    context.title = "راصد — منصّة إدارة تحصيل الخدمات"
+    context.title = f"{PLATFORM_NAME} — {PLATFORM_TAGLINE}"
+    context.platform_name = PLATFORM_NAME
+    context.platform_tagline = PLATFORM_TAGLINE
+    context.platform_kicker = PLATFORM_KICKER
 
-    context.enable_public_trial = bool(
-        frappe.db.get_single_value("SaaS Settings", "enable_public_trial")
+    # Trial availability is decided per product, by the product's own record.
+    # Advertising "ابدأ التجربة" against a product whose trial plan is unset
+    # would walk a visitor into a signup that cannot complete.
+    context.brand_icon = "asofisaas"
+    context.favicon = "/assets/asofi_saas/images/icon/asofisaas-48.png"
+    context.og_image = frappe.utils.get_url(
+        "/assets/asofi_saas/images/og/asofisaas-og.png"
     )
-    context.trial_days = int(frappe.db.get_single_value("SaaS Settings", "trial_days") or 14)
-    context.domain_suffix = _domain_suffix()
-    context.mobile_app_url = frappe.db.get_single_value("SaaS Settings", "mobile_app_url") or ""
+    context.og_description = PLATFORM_TAGLINE
 
-    # Where a paid-plan enquiry should go. Both blank means the page simply
-    # does not offer a contact button — better than a dead link.
-    context.sales_whatsapp = (
-        frappe.db.get_single_value("SaaS Settings", "sales_whatsapp") or ""
-    ).strip()
-    context.sales_email = (
-        frappe.db.get_single_value("SaaS Settings", "sales_email") or ""
-    ).strip()
+    context.products = products()
 
-    # get_all bypasses user permissions, so Guests still see the public catalogue.
-    plans = frappe.get_all(
-        "SaaS Subscription Plan",
-        filters={"is_active": 1},
-        fields=[
-            "plan_code",
-            "plan_name",
-            "monthly_price",
-            "max_collectors",
-            "max_zones",
-            "max_beneficiaries",
-            "max_branches",
-            "max_employees",
-            "allow_photo_capture",
-            "allow_reports_export",
-            *[flag for flag, _label in PUBLIC_MODULES],
-            "description",
-        ],
-        order_by="monthly_price asc",
-    )
-    for plan in plans:
-        plan["modules"] = [label for flag, label in PUBLIC_MODULES if plan.get(flag)]
-
-    context.plans = plans
-
-    context.check_method = CHECK_METHOD
-    context.create_method = CREATE_METHOD
-    context.progress_method = PROGRESS_METHOD
     return context
