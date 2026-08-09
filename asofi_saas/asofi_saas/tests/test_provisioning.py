@@ -90,7 +90,17 @@ class TestHandoverLeavesNoWizard(FrappeTestCase):
         )
         return drivers.BenchDriver(product).finalize_setup("acme.test")
 
-    def test_the_wizard_is_marked_complete(self):
+    def test_the_wizard_is_marked_complete_the_way_frappe_records_it(self):
+        """Not by writing the field. `frappe.is_setup_complete()` derives the
+        answer from the Installed Application rows and writes the field *from*
+        it — so a site with the field set to 1 still booted `setup_complete:
+        0`, and the router sent everyone to the wizard."""
+        joined = " | ".join(" ".join(c) for c in self._commands())
+
+        self.assertIn("enable_setup_wizard_complete", joined)
+        self.assertIn("'app_name': 'frappe'", joined)
+
+    def test_the_field_is_mirrored_for_code_that_reads_it_directly(self):
         joined = [" ".join(c) for c in self._commands()]
         self.assertTrue(
             any("setup_complete" in c and "System Settings" in c for c in joined),
