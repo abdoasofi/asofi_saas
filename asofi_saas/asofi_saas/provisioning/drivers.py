@@ -58,13 +58,31 @@ class BenchDriver:
         return [self.executable, "--site", site, "install-app", app]
 
     def finalize_setup(self, site):
-        # A fresh site has the setup wizard incomplete, which traps a
-        # non-System-Manager on /app/setup-wizard with "Not permitted" at first
-        # web login. The manager's real interface is the mobile app anyway.
+        """Hand over a site whose setup wizard is already behind it.
+
+        Two writes, not one — and the second is the one that was missing.
+        `setup_complete` is what most code asks, but the Desk lands on
+        whatever the `desktop:home_page` default says, and `bench new-site`
+        writes "setup-wizard" there at install (frappe/utils/install.py).
+        Only finishing the wizard moves it, so a site marked complete still
+        sent every user straight to the wizard — and a manager who is not a
+        System Manager is met there by "ليس لديك الأذونات الكافية": the first
+        screen after signing up.
+
+        Frappe's own reset patch treats these two values as a pair; so do we.
+        """
+        def execute(method, kwargs):
+            return [self.executable, "--site", site, "execute", method, "--kwargs", kwargs]
+
         return [
-            self.executable, "--site", site, "execute", "frappe.db.set_single_value",
-            "--kwargs",
-            "{'doctype': 'System Settings', 'fieldname': 'setup_complete', 'value': 1}",
+            execute(
+                "frappe.db.set_single_value",
+                "{'doctype': 'System Settings', 'fieldname': 'setup_complete', 'value': 1}",
+            ),
+            execute(
+                "frappe.db.set_default",
+                "{'key': 'desktop:home_page', 'val': 'workspace'}",
+            ),
         ]
 
     def set_secret(self, site, secret):

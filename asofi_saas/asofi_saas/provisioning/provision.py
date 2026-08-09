@@ -429,13 +429,10 @@ def provision_worker(
         # (non-System-Manager) manager on /app/setup-wizard with a "Not permitted"
         # error on first web login. Mark setup complete so the site is usable
         # immediately; the manager's day-to-day interface is the Rased mobile app.
-        _run(
-            driver.finalize_setup(site),
-            bench_path,
-            operation_id,
-            "finalize-setup",
-            user,
-        )
+        # Several writes: marking the wizard complete and pointing the Desk
+        # somewhere the new manager is actually allowed to be.
+        for cmd in driver.finalize_setup(site):
+            _run(cmd, bench_path, operation_id, "finalize-setup", user)
 
         _run(
             driver.set_secret(site, secret),
