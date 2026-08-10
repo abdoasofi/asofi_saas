@@ -103,6 +103,16 @@ class SaaSSubscriptionPlan(Document):
         for row in self.features or []:
             out[row.metric_key] = 1 if row.enabled else 0
 
+        # Every feature the product sells, including the ones this plan does
+        # not. A receiving site reads an unknown key as *allowed* — deliberately,
+        # so a self-hosted school never loses functionality to a plan that
+        # predates it — which means silence grants the module. A plan has to say
+        # no out loud, and expecting an operator to add a disabled row for every
+        # module they are withholding is expecting them to remember something
+        # nothing reminds them of.
+        for key in self._catalogue_features():
+            out.setdefault(key, 0)
+
         if self.product == LEGACY_PRODUCT:
             for field in LEGACY_RASED_FIELDS:
                 if field not in out:
@@ -110,3 +120,15 @@ class SaaSSubscriptionPlan(Document):
                     out[field] = value if value is not None else 0
 
         return out
+
+    def _catalogue_features(self):
+        """Feature keys this plan's product sells, or none if it has no product.
+
+        A plan with no product predates the catalogue; it keeps travelling with
+        exactly the keys it carried yesterday rather than being handed a
+        vocabulary nobody chose for it.
+        """
+        if not self.product:
+            return []
+
+        return saas_product.get(self.product).keys_of(saas_product.FEATURE)

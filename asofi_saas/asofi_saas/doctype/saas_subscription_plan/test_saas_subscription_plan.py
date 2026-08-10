@@ -33,3 +33,42 @@ class TestSaaSSubscriptionPlan(FrappeTestCase):
         codes = {p["plan_code"] for p in api.list_plans(active_only=1)}
         # the seeded fixtures are active and must appear
         self.assertIn("standard", codes)
+
+
+class TestAPlanSaysNoOutLoud(FrappeTestCase):
+    """A module a plan withholds has to travel as a 0, not as silence.
+
+    The receiving site reads an unknown key as *allowed* — deliberately, so a
+    self-hosted school never loses functionality to a plan that predates the
+    feature. That makes silence a grant. A trial that simply never mentioned
+    the executive dashboard was handing it out.
+    """
+
+    def test_a_module_the_plan_does_not_grant_travels_as_zero(self):
+        product = frappe.get_cached_doc("SaaS Product", "edupulse")
+        keys = product.keys_of("Feature")
+        if not keys:
+            self.skipTest("edupulse has no feature metrics on this site")
+
+        definition = frappe.get_doc(
+            "SaaS Subscription Plan", "edupulse_trial"
+        ).definition()
+
+        for key in keys:
+            with self.subTest(key=key):
+                self.assertIn(
+                    key,
+                    definition,
+                    f"{key} لم يُذكر في الخطة، فسيُقرأ على الموقع كمسموح",
+                )
+
+    def test_a_plan_with_no_product_is_left_alone(self):
+        """Such a plan predates the catalogue. It keeps travelling with exactly
+        the keys it carried yesterday rather than a vocabulary nobody chose."""
+        plan = frappe.new_doc("SaaS Subscription Plan")
+        plan.plan_code = "_test_no_product"
+        plan.plan_name = "_test_no_product"
+
+        definition = plan.definition()
+
+        self.assertFalse([k for k in definition if k.startswith("allow_")])
