@@ -14,10 +14,18 @@ run where" and the worker still runs and streams them, so introducing the seam
 changed no behaviour on any live tenant.
 """
 
+import json
+import pathlib
+
 import frappe
 from frappe import _
 
 from asofi_saas.asofi_saas.doctype.saas_product import saas_product
+
+#: How long to wait on the target bench's Redis before calling it down. Short
+#: on purpose: this runs against localhost, and a provision that hangs looks
+#: identical to a provision that is working.
+PREFLIGHT_TIMEOUT = 3
 
 
 class BenchDriver:
@@ -45,6 +53,66 @@ class BenchDriver:
         """Install order matters — edupulse_core requires lms to exist first."""
         raw = self.product.apps_to_install or ""
         return [a.strip() for a in raw.replace(",", "\n").splitlines() if a.strip()]
+
+    # -- preflight ---------------------------------------------------------
+    def preflight(self):
+        """Refuse to start when the target bench is not running.
+
+        A bench whose Redis is down does not fail on the first command — it
+        fails on the fourth. `new-site` creates the database and the site
+        directory, `install-app` installs, `set-config` writes the secret, and
+        `add-user` is the first step that enqueues a background job and so the
+        first that needs the queue. The visitor watches the progress bar stop
+        at 30% while a real database, a real site directory and a tenant marked
+        Failed are already on disk, and the subdomain they chose is now taken.
+
+        One socket connect turns that into a refusal before anything exists.
+        Checked here rather than in the worker because the driver is what knows
+        where the tenant physically lives; a container driver would answer this
+        question differently and the worker should not have to care.
+        """
+        import redis
+
+        bench = pathlib.Path(self.cwd)
+        config = bench / "sites" / "common_site_config.json"
+
+        if not config.is_file():
+            frappe.throw(
+                _("مسار الـ bench للنظام {0} غير صالح: لا يوجد {1}").format(
+                    self.product.name, config
+                )
+            )
+
+        try:
+            conf = json.loads(config.read_text())
+        except (OSError, ValueError) as e:
+            frappe.throw(_("تعذّرت قراءة إعدادات الـ bench الهدف: {0}").format(e))
+
+        down = []
+        # Only the queue is strictly required to finish a provision, but a cache
+        # that is down means the new site is broken the moment it is handed over
+        # — so both are reported, and either one stops us.
+        for label, key in (("طابور Redis", "redis_queue"), ("ذاكرة Redis", "redis_cache")):
+            url = conf.get(key)
+            if not url:
+                down.append(f"{label}: غير مضبوط في common_site_config.json")
+                continue
+            try:
+                redis.from_url(
+                    url,
+                    socket_connect_timeout=PREFLIGHT_TIMEOUT,
+                    socket_timeout=PREFLIGHT_TIMEOUT,
+                ).ping()
+            except Exception:
+                down.append(f"{label} ({url})")
+
+        if down:
+            frappe.throw(
+                _(
+                    "خدمات الـ bench الهدف متوقفة، فلن يُنشأ الموقع: {0}."
+                    " شغّل «bench start» في {1} ثم أعد المحاولة."
+                ).format("، ".join(down), self.cwd)
+            )
 
     # -- commands ----------------------------------------------------------
     def create_site(self, site, root_password, admin_password):
