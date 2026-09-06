@@ -404,6 +404,12 @@ def provision_worker(
         secret = doc.get_password("control_plane_secret")
         apps = driver.apps()
 
+        # Before anything exists on disk. A target bench with Redis down gets
+        # three commands in before failing, and leaves a database, a site
+        # directory and a taken subdomain behind — see BenchDriver.preflight.
+        _publish(operation_id, "preflight", "info", "فحص جاهزية الـ bench الهدف", user)
+        driver.preflight()
+
         doc.db_set("provision_status", "Creating")
         frappe.db.commit()
         _publish(operation_id, "start", "info", f"بدء إنشاء الموقع {site}", user)
