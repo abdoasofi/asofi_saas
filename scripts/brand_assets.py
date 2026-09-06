@@ -31,6 +31,12 @@ BRANDS = {
     "asofisaas": {"graphic": (0.160, 0.543)},
     "rased":     {"graphic": (0.130, 0.508)},
     "edupulse":  {"graphic": (0.050, 0.500)},
+    # دكّان's master is authored, not photographed: scripts/dukkan_lockup.html
+    # lays the mark out by fraction of height, so these two numbers are the
+    # layout itself rather than a reading taken off a finished picture. The
+    # measured ink confirms them — graphic 0.174–0.447, first letter of the
+    # name at 0.506 — and redrawing the lockup means revisiting both places.
+    "dukkan":    {"graphic": (0.100, 0.490)},
 }
 
 #: 16–48 favicons · 64–128 in-page · 180 apple-touch · 192/512 PWA manifest.

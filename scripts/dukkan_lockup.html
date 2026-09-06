@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<title>دكّان — lockup master</title>
+<!--
+  مصدر لوحة دكّان. يُحوَّل إلى asofi_saas/public/images/dukkan.png بـ:
+
+    google-chrome --headless --disable-gpu --hide-scrollbars \
+      --screenshot=<out>/dukkan.png --window-size=512,512 \
+      --default-background-color=FFFFFFFF \
+      file:///.../scripts/dukkan_lockup.html
+
+  ثم python3 scripts/brand_assets.py يشتقّ منه المقاسات العشرة وبطاقة OG.
+
+  التخطيط مقصود بالنسب: الرسم يشغل من 5% إلى 50% من الارتفاع، وهي بالضبط
+  الكسور المسجّلة في BRANDS["dukkan"] — لا مقيسة تقديراً بعد الرسم.
+  تعديل الارتفاعات هنا يوجب تعديلها هناك.
+-->
+<style>
+  @font-face {
+    font-family: "Cairo";
+    src: url("file:///home/asofi/rased_mobile/build/flutter_assets/assets/fonts/Cairo-Regular.ttf");
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: "Cairo";
+    src: url("file:///home/asofi/rased_mobile/build/flutter_assets/assets/fonts/Cairo-SemiBold.ttf");
+    font-weight: 600;
+  }
+  @font-face {
+    font-family: "Cairo";
+    src: url("file:///home/asofi/rased_mobile/build/flutter_assets/assets/fonts/Cairo-Bold.ttf");
+    font-weight: 700;
+  }
+
+  :root {
+    /* تدرّج العائلة، مأخوذ حرفياً من brand_assets.py::gradient */
+    --teal: #17a89b;
+    --blue: #1d4ed8;
+    --ink: #16324f;
+    --muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 512px; height: 512px;
+    background: #fff;
+    font-family: "Cairo", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .lockup {
+    width: 512px; height: 512px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0;
+  }
+
+  /* ── الرسم: من 5% إلى 50% من الارتفاع = 25.6px إلى 256px ── */
+  .mark {
+    height: 230px;              /* 25.6 → 255.6 */
+    margin-top: 25.6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mark svg { height: 100%; width: auto; display: block; }
+
+  /* ── الكتلة النصية: تبدأ عند 50% تماماً ── */
+  .name {
+    font-size: 54px; font-weight: 700; line-height: 1.1;
+    margin-top: 6px; letter-spacing: -0.5px;
+  }
+  .name .a { color: var(--blue); }
+  .name .b { color: var(--teal); }
+
+  .latin {
+    font-size: 30px; font-weight: 600; letter-spacing: 3px;
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .latin .rule { width: 34px; height: 3px; border-radius: 2px; background: var(--teal); }
+  .latin .w1 { color: var(--ink); }
+  .latin .w2 { color: var(--teal); }
+
+  .tagline {
+    font-size: 15px; font-weight: 400; color: var(--muted);
+    margin-top: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tagline .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); }
+
+  /* ── صفّ الأيقونات الأربع ── */
+  .glyphs {
+    margin-top: 22px;
+    display: flex; gap: 26px; align-items: flex-start;
+  }
+  .glyph { width: 92px; text-align: center; }
+  .glyph .ic { height: 30px; display: flex; align-items: center; justify-content: center; }
+  .glyph .ic svg { height: 26px; width: auto; }
+  .glyph .ar { font-size: 11px; font-weight: 600; color: var(--ink); margin-top: 3px; }
+  .glyph .en { font-size: 8.5px; font-weight: 400; color: var(--muted); letter-spacing: .2px; }
+</style>
+
+<div class="lockup">
+
+  <!-- ══ العلامة: واجهة دكّان — مظلّة مخطّطة فوق واجهة مفتوحة ══ -->
+  <div class="mark">
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#17a89b"/>
+          <stop offset="1" stop-color="#1d4ed8"/>
+        </linearGradient>
+        <linearGradient id="gsoft" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5eead4"/>
+          <stop offset="1" stop-color="#60a5fa"/>
+        </linearGradient>
+      </defs>
+
+      <!-- القوس المحيط: نصف دائرة مفتوحة، كأختيه في العائلة -->
+      <path d="M28 150 A92 92 0 0 1 212 150"
+            fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" opacity=".28"/>
+
+      <!-- المظلّة -->
+      <path d="M42 104 L58 66 H182 L198 104 Z" fill="url(#g)"/>
+      <!-- خطوط المظلّة الفاتحة -->
+      <path d="M83 66 L73 104 H55 L69 66 Z" fill="#fff" opacity=".34"/>
+      <path d="M133 66 L133 104 H108 L112 66 Z" fill="#fff" opacity=".34"/>
+      <path d="M183 66 L191 104 H168 L162 66 Z" fill="#fff" opacity=".34"/>
+      <!-- حافة المظلّة المقوّسة -->
+      <path d="M42 104 q13 16 26 0 q13 16 26 0 q13 16 26 0 q13 16 26 0 q13 16 26 0 q13 16 26 0"
+            fill="url(#gsoft)"/>
+
+      <!-- جسم المحل -->
+      <rect x="52" y="118" width="136" height="86" rx="7" fill="none"
+            stroke="url(#g)" stroke-width="8"/>
+      <!-- الباب -->
+      <rect x="68" y="146" width="42" height="58" rx="4" fill="url(#g)" opacity=".9"/>
+      <circle cx="101" cy="176" r="3.4" fill="#fff" opacity=".85"/>
+      <!-- النافذة -->
+      <rect x="126" y="146" width="46" height="32" rx="4" fill="url(#gsoft)" opacity=".55"/>
+
+      <!-- الأرضية -->
+      <rect x="40" y="204" width="160" height="9" rx="4.5" fill="url(#g)"/>
+    </svg>
+  </div>
+
+  <!-- ══ الاسم ══ -->
+  <div class="name"><span class="a">دكّـ</span><span class="b">ان</span></div>
+
+  <div class="latin">
+    <span class="rule"></span>
+    <span><span class="w1">Duk</span><span class="w2">kan</span></span>
+    <span class="rule"></span>
+  </div>
+
+  <div class="tagline">
+    <span>بقالتك في جيبك</span>
+    <span class="dot"></span>
+    <span>بيع، جرد، ودفتر آجل</span>
+  </div>
+
+  <!-- ══ الأيقونات الأربع ══ -->
+  <div class="glyphs">
+    <div class="glyph">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17a89b"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+        <g stroke="url(#g1)"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.6L21 7H6"/></g>
+      </svg></div>
+      <div class="ar">نقطة بيع</div>
+      <div class="en">Fast POS</div>
+    </div>
+
+    <div class="glyph">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17a89b"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+        <g stroke="url(#g2)"><path d="M21 8v8a2 2 0 0 1-1 1.7l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.7l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></g>
+      </svg></div>
+      <div class="ar">مخزون</div>
+      <div class="en">Stock</div>
+    </div>
+
+    <div class="glyph">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17a89b"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+        <g stroke="url(#g3)"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M4 17h16M8.5 7h7M8.5 11h4"/></g>
+      </svg></div>
+      <div class="ar">دفتر آجل</div>
+      <div class="en">Credit Book</div>
+    </div>
+
+    <div class="glyph">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17a89b"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+        <g stroke="url(#g4)"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M7 8h4M7 11h7"/></g>
+      </svg></div>
+      <div class="ar">تقارير المالك</div>
+      <div class="en">Owner Insights</div>
+    </div>
+  </div>
+
+</div>
+</html>

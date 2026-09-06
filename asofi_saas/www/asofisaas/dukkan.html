@@ -1,0 +1,86 @@
+{% extends "templates/storefront/base.html" %}
+
+{# دكّان — its own words. The structure mirrors Rased's and نبض التعلم's so the
+   shared shell renders all three identically, but the promise is different:
+   this buyer is a shopkeeper standing at a till, not an administrator behind
+   a desk. Every claim below maps to something the app actually enforces —
+   the credit limit throws, the sync is idempotent, the ZATCA QR is generated
+   server-side. Nothing here is sold ahead of the code. #}
+
+{# The signup form lives in the shared shell; its wording does not. #}
+{% block org_label %}اسم المحل{% endblock %}
+{% block org_placeholder %}مثال: بقالة النور{% endblock %}
+{% block subdomain_example %}noor{% endblock %}
+
+{% block topbar %}
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand"><img class="mark" src="/assets/asofi_saas/images/icon/dukkan-96.png" alt="" width="34" height="34" onerror="this.remove()"><span class="dot">د</span> دكّان</div>
+      {% if enable_public_trial %}
+      <a href="#trial" class="btn btn--primary">ابدأ التجربة المجانية</a>
+      {% else %}
+      <a href="#pricing" class="btn btn--primary">استعرض الخطط</a>
+      {% endif %}
+    </div>
+  </header>
+{% endblock %}
+
+{% block hero %}
+  <!-- Hero -->
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">نظام سحابي للبقالات والمحلات الصغيرة</span>
+        <h1>اعرف كم <span>ربحت</span> اليوم، لا كم بعت فقط</h1>
+        <p class="lead">
+          دكّان يثبّت تكلفة كل صنف لحظة بيعه، فيحسب ربحك الحقيقي لا مجموع
+          الفواتير. ويحفظ دفتر الآجل الذي تكتبه على الورق اليوم — برصيد لكل
+          عميل وحدٍّ لا يتجاوزه.
+        </p>
+        <div class="cta-row">
+          {% if enable_public_trial %}
+          <a href="#trial" class="btn btn--primary btn--lg">ابدأ تجربتك المجانية لمدة {{ trial_days }} يوماً</a>
+          {% endif %}
+          <a href="#pricing" class="btn btn--lg
+             {% if enable_public_trial %}btn--ghost{% else %}btn--primary{% endif %}">استعرض الخطط</a>
+        </div>
+        <p class="reassure">✔ <b>موقع مستقل لكل محل</b> · بياناتك معزولة · فاتورة ضريبية جاهزة</p>
+      </div>
+      <div class="hero-card">
+        <div class="row"><span class="ic">💰</span><div><b>الربح لا المبيعات</b><small>التكلفة تُثبَّت وقت البيع، فرفع سعر المورّد اليوم لا يعيد كتابة ربح الأسبوع الماضي</small></div></div>
+        <div class="row"><span class="ic">📒</span><div><b>دفتر الآجل بحدّ ائتمان</b><small>رصيد لكل عميل، والفاتورة تُرفض عند تجاوز الحد لا بعد فوات الأوان</small></div></div>
+        <div class="row"><span class="ic">📶</span><div><b>البيع لا يتوقف بانقطاع النت</b><small>الفواتير تُحفظ وتتزامن لاحقاً، ولا تُحسَب مرتين مهما تكررت المحاولة</small></div></div>
+        <div class="row"><span class="ic">⏳</span><div><b>تنبيه قبل أن تخسر البضاعة</b><small>ما قارب الانتهاء وما نزل تحت حد الطلب — كل صباح</small></div></div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block features %}
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>ما الذي يعمل فعلاً في دكّان</h2>
+        <p>صندوق سريع، ودفتر ديون لا يُنسى، ومخزون يخبرك قبل أن تسأل.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><span class="ic">🛒</span><h3>صندوق سريع بالباركود</h3><p>امسح الباركود أو ابحث بالاسم، والسعر يأتي من بطاقة المنتج. نقدي أو شبكة أو آجل، والباقي يُحسب لك.</p></div>
+        <div class="card"><span class="ic">📒</span><h3>دفتر «على الحساب»</h3><p>رصيد لكل عميل وحدّ ائتمان يُفرض عند البيع. السداد قيد مستقل، وكشف الحساب جاهز في أي لحظة.</p></div>
+        <div class="card"><span class="ic">📦</span><h3>مخزون يخصم نفسه</h3><p>كل فاتورة تخصم الكمية فوراً، والإلغاء يعيدها. تنبيه فوري حين ينزل صنف تحت حد إعادة الطلب.</p></div>
+        <div class="card"><span class="ic">⏳</span><h3>تواريخ الصلاحية</h3><p>تقرير يومي بما يقارب الانتهاء وما زال في الرفّ — فتخصمه وتصرّفه قبل أن يتحوّل إلى خسارة.</p></div>
+        <div class="card"><span class="ic">🧾</span><h3>فاتورة ضريبية مبسّطة</h3><p>رمز QR وفق المرحلة الأولى من هيئة الزكاة والضريبة، يُولَّد على الخادم بصيغة TLV الصحيحة.</p></div>
+        <div class="card"><span class="ic">📊</span><h3>وردية تُقفل بالأرقام</h3><p>نقدية افتتاحية، ومبيعات كل طريقة دفع، والنقدية المتوقعة والفرق — فتعرف أين اختلّ الصندوق لا أن تخمّن.</p></div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block site_footer %}
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="brand"><img class="mark" src="/assets/asofi_saas/images/icon/dukkan-96.png" alt="" width="34" height="34" onerror="this.remove()"><span class="dot">د</span> دكّان</div>
+      <p>دكّان — أحد أنظمة أسوفي. جميع الحقوق محفوظة.</p>
+    </div>
+  </footer>
+{% endblock %}
